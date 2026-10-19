@@ -1,0 +1,192 @@
+{
+  "sheet": "tuning",
+  "about": "Numbers that join the two games. VS units are Vampire Survivors world units (its camera shows about 2 x C_CamOrtho of them top to bottom); ROUNDS units are ROUNDS world units (its own screen is 40 tall). A fresh ROUNDS gun: 55 damage, 0.3 s between shots, 3 ammo, about 2 s reload. Each row becomes a constant in Tuning (src/Shared/Generated/Tuning.g.cs).",
+  "columns": {
+    "id": "constant",
+    "value": "number",
+    "unit": "unit",
+    "why": "reason"
+  },
+  "rows": [
+    {
+      "id": "roundsHalfView",
+      "value": 13,
+      "unit": "ROUNDS units",
+      "why": "the VS camera's half height shown as this many ROUNDS units: the ROUNDS blob is about 5% of the screen tall, like VS's own characters (ROUNDS's own screen is 20)"
+    },
+    {
+      "id": "damageScale",
+      "value": 0.3,
+      "unit": "VS dmg per ROUNDS dmg",
+      "why": "a fresh 55-damage bullet does 16.5, like VS's starting weapons (Magic Wand 10, Whip 10, Knife 6.5) a little stronger since one gun replaces six weapon slots"
+    },
+    {
+      "id": "percentDamageFlat",
+      "value": 60,
+      "unit": "VS dmg per 1.0",
+      "why": "percent-of-health cards would one-shot bosses; a flat amount instead (scaled by damageScale downstream as in Roundhead)"
+    },
+    {
+      "id": "contactDamageScale",
+      "value": 0.5,
+      "unit": "ROUNDS hp per VS dmg",
+      "why": "VS lands about five enemy touches a second on a surrounded character; one ROUNDS gun clears a horde slower than VS's starting weapons, so a touch takes half its VS damage from ROUNDS's 100 health"
+    },
+    {
+      "id": "healScale",
+      "value": 1,
+      "unit": "ROUNDS hp per VS heal",
+      "why": "Floor Chicken (+30) and regen heal ROUNDS's health one to one"
+    },
+    {
+      "id": "playerHitCooldown",
+      "value": 0.4,
+      "unit": "s",
+      "why": "at most one VS hit per seat this often reaches ROUNDS (about 2.5 a second when surrounded; VS paces its own hits too)"
+    },
+    {
+      "id": "blockedHitCooldown",
+      "value": 0.1,
+      "unit": "s",
+      "why": "a VS hit taken during the ROUNDS block reaches ROUNDS as a blocked hit at most this often"
+    },
+    {
+      "id": "autoAimRange",
+      "value": 1.15,
+      "unit": "x camera half width",
+      "why": "auto-aim picks the nearest enemy within the screen (a little past its edge); none in range = the gun rests"
+    },
+    {
+      "id": "mouseAimSeconds",
+      "value": 2.5,
+      "unit": "s",
+      "why": "after the mouse moves (or the right stick tilts) it aims for this long, then auto-aim takes over again"
+    },
+    {
+      "id": "frameWidth",
+      "value": 1280,
+      "unit": "pixels",
+      "why": "ROUNDS picture width (the shared buffers hold 1280 x 720)"
+    },
+    {
+      "id": "frameHeight",
+      "value": 720,
+      "unit": "pixels",
+      "why": "ROUNDS picture height"
+    },
+    {
+      "id": "uiOpacityBoost",
+      "value": 3,
+      "unit": "power",
+      "why": "ROUNDS draws its card bar for its own dark screen; over VS's stages its coverage is raised with 1 - (1 - a)^boost"
+    },
+    {
+      "id": "gunShade",
+      "value": 0.1,
+      "unit": "grey level",
+      "why": "ROUNDS guns are black (in ROUNDS they show as a soft shadow); drawn solid near-black so they read on VS's grass"
+    },
+    {
+      "id": "wallThickness",
+      "value": 6,
+      "unit": "ROUNDS units",
+      "why": "the screen-edge walls ROUNDS's bullets bounce off (Bouncy) or end at"
+    },
+    {
+      "id": "wallMargin",
+      "value": 1.5,
+      "unit": "ROUNDS units",
+      "why": "the walls stand this far outside the visible screen, so bullets visibly leave it before they end"
+    },
+    {
+      "id": "legGroundDrop",
+      "value": 1.27,
+      "unit": "x body scale",
+      "why": "the per-player floor under a held ROUNDS player sits this far below its body (ROUNDS's stance), so its IK legs plant and step as it walks"
+    },
+    {
+      "id": "enemySlowScale",
+      "value": 1,
+      "unit": "x ROUNDS slow",
+      "why": "ordinary enemies take ROUNDS slow as is (ROUNDS caps it at 0.9)"
+    },
+    {
+      "id": "bossSlowScale",
+      "value": 0.5,
+      "unit": "x ROUNDS slow",
+      "why": "bosses at most 45% slower"
+    },
+    {
+      "id": "enemyStunCap",
+      "value": 2,
+      "unit": "s",
+      "why": "longest continuous freeze of an ordinary enemy per stun"
+    },
+    {
+      "id": "bossStunCap",
+      "value": 0.75,
+      "unit": "s",
+      "why": "longest continuous boss freeze per stun"
+    },
+    {
+      "id": "enemyPushScale",
+      "value": 0.02,
+      "unit": "VS units per VS-units/s",
+      "why": "converts ROUNDS's velocity change for a 100-mass body into a VS knockback distance"
+    },
+    {
+      "id": "enemyPushMax",
+      "value": 2.5,
+      "unit": "VS units",
+      "why": "the farthest one push moves an enemy (Saw, Thruster)"
+    },
+    {
+      "id": "engineWaitSeconds",
+      "value": 90,
+      "unit": "s",
+      "why": "how long a run waits for the hidden ROUNDS before showing the stand-in Orange/Blue with a note"
+    },
+    {
+      "id": "engineStaleSeconds",
+      "value": 3,
+      "unit": "s",
+      "why": "ROUNDS's frame counter standing still this long means it is gone"
+    },
+    {
+      "id": "statusStaleSeconds",
+      "value": 0.5,
+      "unit": "s",
+      "why": "if the status table stops changing this long, every enemy status is cleared"
+    },
+    {
+      "id": "chestPicks",
+      "value": 1,
+      "unit": "cards",
+      "why": "a treasure chest gives one ROUNDS card pick per chest (VS's own chests give 1, 3 or 5 items; ROUNDS picks are bigger)"
+    },
+    {
+      "id": "levelUpPicks",
+      "value": 1,
+      "unit": "cards",
+      "why": "every VS level-up is one ROUNDS pick"
+    },
+    {
+      "id": "statusTintStrength",
+      "value": 0.5,
+      "unit": "0..1",
+      "why": "how strongly poison, slow and stun tint an enemy sprite"
+    },
+    {
+      "id": "testMinutes",
+      "value": 4,
+      "unit": "minutes",
+      "why": "a Melty test run plays this long"
+    },
+    {
+      "id": "hitNoise",
+      "value": 0.5,
+      "unit": "VS hp",
+      "why": "health changes smaller than this after VS's damage step are rounding, not hits"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "sheet": "characters",
+  "about": "The adventure's heroes: ROUNDS's own two players. Each is a VS custom character (VS's workshop character system) whose look in a run is drawn by the hidden ROUNDS; its VS sprite is the portrait ROUNDS renders of it (Portraits) and only shows if ROUNDS is not running. seat = ROUNDS player id (its colour).",
+  "columns": {
+    "id": "row id",
+    "seat": "ROUNDS player / link seat (0 Orange, 1 Blue)",
+    "vsName": "name shown in VS",
+    "surname": "VS surname line",
+    "description": "VS character description",
+    "color": "RRGGBB of the ROUNDS team colour (stand-in sprite until ROUNDS's portrait exists)",
+    "basePrefab": "VS CharacterType whose character prefab the custom character is built from",
+    "folder": "workshop folder name hashed into its runtime CharacterType",
+    "walkFrames": "VS walking frames (the ROUNDS picture replaces them in a run)",
+    "maxHp": "VS max health (ROUNDS's health is the real one; VS shows it)",
+    "moveSpeed": "VS move speed multiplier (ROUNDS movement cards scale it)",
+    "growth": "VS experience multiplier (more level-ups = more ROUNDS cards early)"
+  },
+  "rows": [
+    {
+      "id": "orange",
+      "seat": 0,
+      "vsName": "Orange",
+      "surname": "of ROUNDS",
+      "description": "ROUNDS's orange player with ROUNDS's gun. Every level-up is a ROUNDS card pick.",
+      "color": "F47A21",
+      "basePrefab": "ANTONIO",
+      "folder": "VampireRounds_Orange",
+      "walkFrames": 1,
+      "maxHp": 100,
+      "moveSpeed": 1,
+      "growth": 1.5
+    },
+    {
+      "id": "blue",
+      "seat": 1,
+      "vsName": "Blue",
+      "surname": "of ROUNDS",
+      "description": "ROUNDS's blue player with ROUNDS's gun. Every level-up is a ROUNDS card pick.",
+      "color": "2E7DE0",
+      "basePrefab": "ANTONIO",
+      "folder": "VampireRounds_Blue",
+      "walkFrames": 1,
+      "maxHp": 100,
+      "moveSpeed": 1,
+      "growth": 1.5
+    }
+  ]
+}

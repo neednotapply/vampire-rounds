@@ -1,0 +1,18 @@
+{
+  "sheet": "adventure",
+  "about": "The Vampire Rounds adventure in VS's Adventures menu. It takes VS's unused AdventureType ADV_LIB_001 and StageSetType STAGE_DATA_ADV_BMN002 slots, so no adventure of the game (or its DLC) is replaced, and has its own progress key (no Steam achievement is tied to it).",
+  "columns": {
+    "id": "row id (the VS AdventureType slot it takes)",
+    "name": "title in the Adventures menu",
+    "description": "line shown with it",
+    "progressKey": "its save key (unique: no VS achievement CompleteAdv_<key> exists)",
+    "startingCharacter": "characters row unlocked from the start",
+    "characters": "characters rows in its roster",
+    "stages": "stages rows in order",
+    "startingCoins": "gold at the start of the adventure",
+    "completionCoins": "gold when the adventure is completed"
+  },
+  "rows": [
+    {"id": "ADV_LIB_001", "name": "Vampire Rounds", "description": "ROUNDS's Orange and Blue fight Vampire Survivors's night with ROUNDS's gun and ROUNDS cards.", "progressKey": "VampireRoundsMelty", "startingCharacter": "orange", "characters": "orange,blue", "stages": "mad_forest", "startingCoins": 2000, "completionCoins": 5000}
+  ]
+}

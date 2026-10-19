@@ -1,0 +1,108 @@
+{
+  "sheet": "systems",
+  "about": "The mashup's systems, each with the code that runs it. game: where it runs (vs = the MelonLoader mod in VS, rounds = the engine in the hidden ROUNDS).",
+  "columns": {
+    "id": "system",
+    "game": "vs | rounds",
+    "does": "what it does",
+    "symbol": "Class.Method entry points, comma separated"
+  },
+  "rows": [
+    {
+      "id": "vs_mod",
+      "game": "vs",
+      "does": "the mod's start, frame loop and on-screen drawing",
+      "symbol": "Mod.OnInitializeMelon,Mod.OnUpdate,Mod.OnGUI"
+    },
+    {
+      "id": "interop_fix",
+      "game": "vs",
+      "does": "a MelonLoader plugin that points Il2CppInterop's GetDefaultFieldValue hook at the right function on VS's Unity 6 build (without it VS crashes 2 s after start with any MelonLoader mod)",
+      "symbol": "Plugin.OnPreInitialization"
+    },
+    {
+      "id": "engine",
+      "game": "vs",
+      "does": "start the player's own ROUNDS hidden with the engine (BepInEx as installed in UserData/VampireRounds/rounds, its log and cache beside it), keep its window out of sight, restart it if it stops, close only it when VS closes",
+      "symbol": "EngineRunner.StartAsync,EngineRunner.Stop"
+    },
+    {
+      "id": "link",
+      "game": "vs",
+      "does": "VS's heartbeat and the engine's liveness on the shared memory",
+      "symbol": "Link.Open,Link.Beat"
+    },
+    {
+      "id": "content",
+      "game": "vs",
+      "does": "the adventure, its stage, Orange and Blue, their texts and pictures in VS's data and menus",
+      "symbol": "Content.InjectJson,Content.RegisterCharacters,Content.RefreshPortraits"
+    },
+    {
+      "id": "session",
+      "game": "vs",
+      "does": "a Vampire Rounds run: seats for Orange and Blue, camera, positions, input, health mirrored from ROUNDS, death and revive",
+      "symbol": "Session.Tick,Session.MirrorHealth"
+    },
+    {
+      "id": "enemies",
+      "game": "vs",
+      "does": "VS's live enemies into the target table; ROUNDS's hits and effects back onto them",
+      "symbol": "Enemies.WriteTargets,Enemies.ApplyHits,Enemies.ApplyFx"
+    },
+    {
+      "id": "frames",
+      "game": "vs",
+      "does": "ROUNDS's picture over VS's stage (Orange, Blue, bullets, effects), the card bar and the pick screen",
+      "symbol": "FrameView.Tick,FrameView.Gui"
+    },
+    {
+      "id": "picks",
+      "game": "vs",
+      "does": "level-ups and chests become ROUNDS card picks while VS is paused",
+      "symbol": "Picks.OnLevelUp,Picks.OnChest,Picks.Tick"
+    },
+    {
+      "id": "input",
+      "game": "vs",
+      "does": "aim (auto or mouse), fire, block and pick input per seat",
+      "symbol": "SeatInput.Aim,SeatInput.Block"
+    },
+    {
+      "id": "notice",
+      "game": "vs",
+      "does": "plain on-screen notes when ROUNDS is missing, the wrong version, already open or still starting",
+      "symbol": "Notice.Draw"
+    },
+    {
+      "id": "test",
+      "game": "vs",
+      "does": "Melty's test run: plays the adventure by itself and marks each check",
+      "symbol": "TestMode.Init,TestMode.Tick,TestMode.Mark"
+    },
+    {
+      "id": "arena",
+      "game": "rounds",
+      "does": "ROUNDS's sandbox with Orange and Blue held where VS puts them, VS's enemies as targets, the screen edges as walls",
+      "symbol": "Arena.Create,Arena.FeedInput"
+    },
+    {
+      "id": "render",
+      "game": "rounds",
+      "does": "ROUNDS's picture of the run (and its pick screen) into the shared frame buffers",
+      "symbol": "ArenaRenderer.LateUpdate"
+    },
+    {
+      "id": "portraits",
+      "game": "rounds",
+      "does": "Orange's and Blue's pictures for VS's menus",
+      "symbol": "Portraits.Tick"
+    },
+    {
+      "id": "engine_plugin",
+      "game": "rounds",
+      "does": "the BepInEx plugin: waits for ROUNDS's cards, keeps the hidden window away, ends with VS",
+      "symbol": "EnginePlugin.CheckVs,EnginePlugin.Exit"
+    }
+  ]
+}

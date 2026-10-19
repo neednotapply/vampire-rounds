@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A MelonLoader plugin for Vampire Survivors (Unity 6): points Il2CppInterop's Class::GetDefaultFieldValue hook at the
+       right function, which MelonLoader 0.7.3 cannot find on this Unity build (the game crashes ~2 s after start). -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>VampireRounds.InteropFix</AssemblyName>
+    <RootNamespace>VampireRounds.InteropFix</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <VsDir Condition="'$(VsDir)' == ''">D:\SteamLibrary\steamapps\common\Vampire Survivors</VsDir>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="MelonLoader"><HintPath>$(VsDir)\MelonLoader\net6\MelonLoader.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(VsDir)\MelonLoader\net6\0Harmony.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,14 @@
+{
+  "sheet": "checks",
+  "about": "Melty test checks (recipe test.checks): each is written to Melty's test log once the run proves it, with no one playing. symbol = where it is marked.",
+  "columns": {"id": "check name", "proves": "what it shows", "symbol": "Class.Method that marks it"},
+  "rows": [
+    {"id": "engine-ready", "proves": "the hidden ROUNDS started, loaded its cards and linked to VS", "symbol": "TestMode.Mark"},
+    {"id": "adventure-listed", "proves": "the Vampire Rounds adventure is in VS's adventure data", "symbol": "TestMode.Mark"},
+    {"id": "run-started", "proves": "a run as Orange started on the adventure's stage", "symbol": "TestMode.Mark"},
+    {"id": "rounds-drawn", "proves": "ROUNDS's picture of Orange is drawn over VS's stage", "symbol": "TestMode.Mark"},
+    {"id": "gun-fired", "proves": "ROUNDS's gun fired at VS enemies", "symbol": "TestMode.Mark"},
+    {"id": "enemy-hit", "proves": "a ROUNDS bullet hit and damaged a VS enemy", "symbol": "TestMode.Mark"},
+    {"id": "card-picked", "proves": "a VS level-up opened ROUNDS's card pick and a card was taken", "symbol": "TestMode.Mark"}
+  ]
+}

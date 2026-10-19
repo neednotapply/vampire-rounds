@@ -1,0 +1,69 @@
+{
+  "sheet": "components",
+  "about": "Every file in the release zip and where Melty installs it. Third-party files are shared as their licenses allow (license column). No file of either game is in it.",
+  "columns": {
+    "id": "file group",
+    "zipPath": "path inside the release zip",
+    "to": "install destination (Melty folder token)",
+    "license": "license and author",
+    "built": "where it comes from"
+  },
+  "rows": [
+    {
+      "id": "vs_mod",
+      "zipPath": "Mods/VampireRounds.dll",
+      "to": "{game}/Mods",
+      "license": "MIT, Vampire Rounds contributors",
+      "built": "src/VsMod"
+    },
+    {
+      "id": "interop_fix",
+      "zipPath": "Plugins/VampireRounds.InteropFix.dll",
+      "to": "{game}/Plugins",
+      "license": "MIT, Vampire Rounds contributors (byte pattern first found by the Isaac Survivors mashup)",
+      "built": "src/InteropFix"
+    },
+    {
+      "id": "engine",
+      "zipPath": "UserData/VampireRounds/rounds/BepInEx/plugins/VampireRounds.Engine/VampireRounds.Engine.dll",
+      "to": "{game}/UserData",
+      "license": "MIT, Vampire Rounds contributors (adapted from Roundhead, MIT)",
+      "built": "src/Engine"
+    },
+    {
+      "id": "bepinex_core",
+      "zipPath": "UserData/VampireRounds/rounds/BepInEx/core/",
+      "to": "{game}/UserData",
+      "license": "BepInEx 5.4.23.2 (MIT), HarmonyX (MIT), MonoMod (MIT), Mono.Cecil (MIT)",
+      "built": "BepInEx_win_x64_5.4.23.2.zip from github.com/BepInEx/BepInEx releases"
+    },
+    {
+      "id": "doorstop",
+      "zipPath": "proxy-rounds/version.dll",
+      "to": "{game:custom-rounds}",
+      "license": "UnityDoorstop 4 (LGPL-2.1), as shipped in BepInEx 5.4.23.2 (winhttp.dll, renamed)",
+      "built": "BepInEx_win_x64_5.4.23.2.zip"
+    },
+    {
+      "id": "art",
+      "zipPath": "UserData/VampireRounds/art/",
+      "to": "{game}/UserData",
+      "license": "MIT, Vampire Rounds contributors (drawn by tools/art.py)",
+      "built": "tools/art.py"
+    },
+    {
+      "id": "licenses",
+      "zipPath": "UserData/VampireRounds/licenses/",
+      "to": "{game}/UserData",
+      "license": "the license texts of everything above",
+      "built": "tools/package.py"
+    },
+    {
+      "id": "readme",
+      "zipPath": "UserData/VampireRounds/README.txt",
+      "to": "{game}/UserData",
+      "license": "MIT, Vampire Rounds contributors",
+      "built": "tools/package.py"
+    }
+  ]
+}

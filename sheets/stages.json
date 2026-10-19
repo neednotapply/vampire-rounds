@@ -1,0 +1,24 @@
+{
+  "sheet": "stages",
+  "about": "The adventure's stages: VS's own stages (map, enemies, bosses, music) used from the player's game, each under a free adventure stage slot. order = position in the adventure's stage list.",
+  "columns": {
+    "id": "row id",
+    "order": "position in the stage list",
+    "slot": "free VS StageType key it is stored under in the adventure's stage data (TEST, TESTONE, ADV_0001TEST are unused by the game)",
+    "vsStage": "VS StageType whose stage (tiles, waves, bosses) it plays",
+    "unlockedBy": "start, or the stages row whose goal unlocks it",
+    "minutes": "the stage's length in VS minutes",
+    "goal": "the progress goal shown in the adventure (its gold prize)"
+  },
+  "rows": [
+    {
+      "id": "mad_forest",
+      "order": 1,
+      "slot": "TEST",
+      "vsStage": "FOREST",
+      "unlockedBy": "start",
+      "minutes": 30,
+      "goal": "Survive 10 minutes in the Mad Forest as Orange or Blue."
+    }
+  ]
+}

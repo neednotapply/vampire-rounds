@@ -1,0 +1,598 @@
+{
+  "sheet": "hooks",
+  "about": "Every place the mod touches a game's code: Harmony patches on VS's IL2CPP code (game vs, applied by MelonLoader from src/VsMod) and on ROUNDS's Assembly-CSharp (game rounds, applied by the engine from src/Engine). target must exist in that game's decompiled code; symbol must exist in src/.",
+  "columns": {
+    "id": "hook id",
+    "game": "vs | rounds",
+    "target": "Class.Method patched (as decompiled)",
+    "kind": "prefix | postfix | finalizer | transpiler",
+    "does": "what the patch does",
+    "symbol": "patch method in src/"
+  },
+  "rows": [
+    {
+      "id": "h_adventure_json",
+      "game": "vs",
+      "target": "DataManager.LoadBaseJObjects",
+      "kind": "postfix",
+      "does": "add the Vampire Rounds adventure (ADV_LIB_001), its stage set (STAGE_DATA_ADV_BMN002), its stage (a copy of the player's own Mad Forest data under the TEST slot) and the ROUNDS gun's weapon data (___PLCHLD200) to VS's data",
+      "symbol": "Content.InjectJson"
+    },
+    {
+      "id": "h_adventure_roster",
+      "game": "vs",
+      "target": "DataManager.LoadDataFromJson",
+      "kind": "postfix",
+      "does": "point the adventure's roster and starting character at Orange's and Blue's runtime character types (VS gives custom characters their numbers at start)",
+      "symbol": "Content.FixAdventure"
+    },
+    {
+      "id": "h_characters",
+      "game": "vs",
+      "target": "WorkshopCharacterBootstrapper.LoadCustomCharacters",
+      "kind": "postfix",
+      "does": "register Orange and Blue through VS's own custom-character system, with their sprites and texts",
+      "symbol": "Content.RegisterCharacters"
+    },
+    {
+      "id": "h_character_prefab",
+      "game": "vs",
+      "target": "CharacterFactory.GetCharacterPrefab",
+      "kind": "prefix",
+      "does": "build Orange's and Blue's character prefab from Antonio's (VS's workshop prefab builder)",
+      "symbol": "Content.CharacterPrefab"
+    },
+    {
+      "id": "h_weapon_prefab",
+      "game": "vs",
+      "target": "WeaponFactory.GetWeaponPrefab",
+      "kind": "prefix",
+      "does": "the ROUNDS gun's VS weapon slot uses the Whip's prefab (it is taken away again before the run starts)",
+      "symbol": "Content.WeaponPrefab"
+    },
+    {
+      "id": "h_adventure_background",
+      "game": "vs",
+      "target": "MainMenuBackgroundFactory.GetBackgroundForAdventureType",
+      "kind": "postfix",
+      "does": "the Vampire Rounds adventure's card and menus use A Garlic Paradise's backdrop (VS has none for a new adventure and shows an empty white one)",
+      "symbol": "Content.Background"
+    },
+    {
+      "id": "h_menu_background",
+      "game": "vs",
+      "target": "MainMenuBackgroundManager.SetBackgroundForAdventure",
+      "kind": "prefix",
+      "does": "the menus behind the Vampire Rounds adventure show VS's own main-menu art (another adventure's animated backdrop stays white outside its own adventure)",
+      "symbol": "Content.MenuBackground"
+    },
+    {
+      "id": "h_adventures_button",
+      "game": "vs",
+      "target": "MainMenuPage.HasAdventuresUnlocked",
+      "kind": "postfix",
+      "does": "the Adventures button shows even without an adventure DLC, so everyone can reach Vampire Rounds",
+      "symbol": "Content.AdventuresButton"
+    },
+    {
+      "id": "h_adventure_card",
+      "game": "vs",
+      "target": "AdventureItemUI.SetData",
+      "kind": "postfix",
+      "does": "the Vampire Rounds card is always open (no DLC or Atlas needed)",
+      "symbol": "Content.AdventureCard"
+    },
+    {
+      "id": "h_both_heroes",
+      "game": "vs",
+      "target": "AdventureManager.InitAdventure",
+      "kind": "postfix",
+      "does": "Orange and Blue are both unlocked from the start of the Vampire Rounds adventure",
+      "symbol": "Content.BothHeroes"
+    },
+    {
+      "id": "h_no_merchant",
+      "game": "vs",
+      "target": "Stage.SpawnAdventureMerchants",
+      "kind": "prefix",
+      "does": "no VS adventure merchant (it sells VS weapons) appears in the Vampire Rounds adventure",
+      "symbol": "Content.NoMerchant"
+    },
+    {
+      "id": "h_no_merchant_tile",
+      "game": "vs",
+      "target": "TilingTileset.SpawnAdventureMerchant",
+      "kind": "prefix",
+      "does": "the same for merchants placed by a stage's tiles",
+      "symbol": "Content.NoMerchant"
+    },
+    {
+      "id": "h_no_custom_merchant",
+      "game": "vs",
+      "target": "Stage.SpawnCustomMerchants",
+      "kind": "prefix",
+      "does": "no VS character merchant appears in the Vampire Rounds adventure either",
+      "symbol": "Content.NoMerchant"
+    },
+    {
+      "id": "h_no_stage_merchant",
+      "game": "vs",
+      "target": "Stage.SpawnMerchant",
+      "kind": "prefix",
+      "does": "no VS stage merchant (Pantalone sells VS weapons) in the Vampire Rounds adventure",
+      "symbol": "Content.NoMerchant"
+    },
+    {
+      "id": "h_starting_gun",
+      "game": "vs",
+      "target": "GameManager.AddStartingWeaponsForAllCharacters",
+      "kind": "postfix",
+      "does": "take the ROUNDS gun's VS placeholder weapon away from Orange and Blue before the run starts (ROUNDS's real gun fires instead)",
+      "symbol": "Session.RemoveStartingGun"
+    },
+    {
+      "id": "h_level_up",
+      "game": "vs",
+      "target": "GameManager.SwapToLevelUpScreen",
+      "kind": "prefix",
+      "does": "a level-up in a Vampire Rounds run opens ROUNDS's card pick instead of VS's level-up choice (VS's level and XP bookkeeping already ran)",
+      "symbol": "Picks.OnLevelUp"
+    },
+    {
+      "id": "h_chest",
+      "game": "vs",
+      "target": "GameManager.SwapToTreasureScreen",
+      "kind": "prefix",
+      "does": "a treasure chest in a Vampire Rounds run opens ROUNDS's card pick instead of VS's chest rewards",
+      "symbol": "Picks.OnChest"
+    },
+    {
+      "id": "h_pause_hold",
+      "game": "vs",
+      "target": "GameStatePlaying.Update",
+      "kind": "prefix",
+      "does": "while ROUNDS's pick is open, VS's pause button does not open the pause menu (it would resume the game under the pick)",
+      "symbol": "Picks.HoldPlaying"
+    },
+    {
+      "id": "h_player_damage",
+      "game": "vs",
+      "target": "CharacterController.TakeDamage",
+      "kind": "prefix+postfix",
+      "does": "VS lands its enemies' hits on Orange or Blue its own way (its pacing); the health a hit takes is given back and sent to ROUNDS's health instead (blocked while ROUNDS's block is up)",
+      "symbol": "Session.AfterDamage"
+    },
+    {
+      "id": "h_player_die",
+      "game": "vs",
+      "target": "CharacterController.Die",
+      "kind": "prefix",
+      "does": "while ROUNDS plays Orange or Blue, only ROUNDS's death ends their VS life",
+      "symbol": "Session.MayDie"
+    },
+    {
+      "id": "h_player_heal",
+      "game": "vs",
+      "target": "CharacterController.RecoverHp",
+      "kind": "prefix",
+      "does": "VS healing (Floor Chicken, regen) heals ROUNDS's health",
+      "symbol": "Session.PlayerHealed"
+    },
+    {
+      "id": "h_test_walk",
+      "game": "vs",
+      "target": "CharacterController.HandlePlayerInput",
+      "kind": "postfix",
+      "does": "in Melty's test run (no one playing) Orange walks a slow circle",
+      "symbol": "AutoPlay.Walk"
+    },
+    {
+      "id": "r_general_input",
+      "game": "rounds",
+      "target": "GeneralInput.Update",
+      "kind": "prefix",
+      "does": "ROUNDS's players read the VS player's input from the arena link",
+      "symbol": "ArenaPatches.InputUpdate"
+    },
+    {
+      "id": "r_out_of_bounds",
+      "game": "rounds",
+      "target": "OutOfBoundsHandler.LateUpdate",
+      "kind": "prefix",
+      "does": "VS's camera and pits decide the edges, not ROUNDS's fixed arena box",
+      "symbol": "ArenaPatches.OutOfBounds"
+    },
+    {
+      "id": "r_sandbox_died",
+      "game": "rounds",
+      "target": "GM_Test.PlayerDied",
+      "kind": "prefix",
+      "does": "VS decides when a fallen player comes back (co-op revive, retry)",
+      "symbol": "ArenaPatches.SandboxDied"
+    },
+    {
+      "id": "r_card_picked",
+      "game": "rounds",
+      "target": "CardChoice.Pick",
+      "kind": "prefix",
+      "does": "record which card the player took on ROUNDS's pick screen",
+      "symbol": "ArenaPatches.Picked"
+    },
+    {
+      "id": "r_card_select",
+      "game": "rounds",
+      "target": "CardChoice.DoPlayerSelect",
+      "kind": "prefix",
+      "does": "ROUNDS's pick screen follows the VS player's keys, stick or mouse",
+      "symbol": "ArenaPatches.PlayerSelect"
+    },
+    {
+      "id": "r_escape_menu",
+      "game": "rounds",
+      "target": "EscapeMenuHandler.Update",
+      "kind": "prefix",
+      "does": "the hidden ROUNDS ignores the gamepad's Start: its escape menu would freeze ROUNDS and its buttons could quit or reload it mid-level",
+      "symbol": "ArenaPatches.EscapeMenu"
+    },
+    {
+      "id": "r_quit_button",
+      "game": "rounds",
+      "target": "QuitButton.Quit",
+      "kind": "prefix",
+      "does": "ROUNDS's QUIT GAME does nothing in the hidden engine (only VS closing ends it)",
+      "symbol": "ArenaPatches.QuitPressed"
+    },
+    {
+      "id": "r_joining",
+      "game": "rounds",
+      "target": "PlayerAssigner.LateUpdate",
+      "kind": "prefix",
+      "does": "no extra ROUNDS players join from a gamepad or key press; only the arena makes players",
+      "symbol": "ArenaPatches.Joining"
+    },
+    {
+      "id": "r_time_pause",
+      "game": "rounds",
+      "target": "TimeHandler.Update",
+      "kind": "postfix",
+      "does": "ROUNDS's time stands still while VS is paused or away (ROUNDS's own pause: time scale 0)",
+      "symbol": "ArenaPatches.PauseWithVs"
+    },
+    {
+      "id": "r_partner_bullet",
+      "game": "rounds",
+      "target": "ProjectileHit.Hit",
+      "kind": "prefix",
+      "does": "no ROUNDS bullet hurts Orange or Blue, a partner's or their own (VS's weapons never hurt their owner; Bouncy bullets fly back across the screen)",
+      "symbol": "ArenaPatches.PartnerBullet"
+    },
+    {
+      "id": "r_partner_damage",
+      "game": "rounds",
+      "target": "HealthHandler.DoDamage",
+      "kind": "prefix",
+      "does": "co-op: no damage from a partner of any kind (explosions, card effects)",
+      "symbol": "ArenaPatches.PartnerDamage"
+    },
+    {
+      "id": "r_enemy_dot",
+      "game": "rounds",
+      "target": "DamageOverTime.TakeDamageOverTime",
+      "kind": "prefix",
+      "does": "Poison and Parasite on a VS enemy: ROUNDS's DoT tick maths run on the VSTarget, each tick a HitDot with the poison colour and lifesteal per tick",
+      "symbol": "ArenaEffectPatches.EnemyDot"
+    },
+    {
+      "id": "r_bullet_hit_start",
+      "game": "rounds",
+      "target": "ProjectileHit.RPCA_DoHit",
+      "kind": "prefix",
+      "does": "records the running bullet (VSTarget.CurrentHit) so an enemy hit also gets the bullet's slow, knockback and ModdingUtils gravity",
+      "symbol": "ArenaEffectPatches.BulletHitStart"
+    },
+    {
+      "id": "r_bullet_hit_end",
+      "game": "rounds",
+      "target": "ProjectileHit.RPCA_DoHit",
+      "kind": "finalizer",
+      "does": "clears the running bullet even if RPCA_DoHit throws (a nested hit gets the outer bullet back)",
+      "symbol": "ArenaEffectPatches.BulletHitEnd"
+    },
+    {
+      "id": "r_enemy_hold",
+      "game": "rounds",
+      "target": "ProjectileHit.Hit",
+      "kind": "prefix",
+      "does": "one hit per bullet per VS enemy group per holdPlayerFor (ROUNDS's playersHit for enemies): drilling or piercing bullets cannot hit every frame",
+      "symbol": "ArenaEffectPatches.HoldEnemy"
+    },
+    {
+      "id": "r_bounce_ends",
+      "game": "rounds",
+      "target": "RayHitReflect.DoHitEffect",
+      "kind": "prefix",
+      "does": "a bouncing bullet ends at a VS enemy as it does at a ROUNDS player (no bouncing off bosses, no Trickster gain from the boss)",
+      "symbol": "ArenaEffectPatches.EnemyEndsBounce"
+    },
+    {
+      "id": "r_drill_ends",
+      "game": "rounds",
+      "target": "RayHitDrill.DoHitEffect",
+      "kind": "postfix",
+      "does": "a drilling bullet ends at a VS enemy as at a player instead of drilling through it like a wall (later effects such as poison still run)",
+      "symbol": "ArenaEffectPatches.DrillEndsAtEnemy"
+    },
+    {
+      "id": "r_bullets_see_enemies",
+      "game": "rounds",
+      "target": "RayCastTrail.Awake",
+      "kind": "postfix",
+      "does": "bullet size and Ghost Bullets' ignoreWallsMask include enemy hit areas (layer 15); floors and walls stay out of ignoreWallsMask",
+      "symbol": "ArenaEffectPatches.BulletsSeeEnemies"
+    },
+    {
+      "id": "r_blast_start",
+      "game": "rounds",
+      "target": "Explosion.Explode",
+      "kind": "prefix",
+      "does": "starts this blast's bookkeeping so each VS enemy group takes the blast once, through its closest visible hit area",
+      "symbol": "ArenaEffectPatches.BlastStart"
+    },
+    {
+      "id": "r_blast_end",
+      "game": "rounds",
+      "target": "Explosion.Explode",
+      "kind": "finalizer",
+      "does": "restores the previous blast context when Explode returns or throws",
+      "symbol": "ArenaEffectPatches.BlastEnd"
+    },
+    {
+      "id": "r_blast",
+      "game": "rounds",
+      "target": "Explosion.DoExplosionEffects",
+      "kind": "prefix",
+      "does": "every Explosion card on VS enemies: slow, silence, Overpower (15% of the blocker's max HP), HitArea damage with dmgColor, Implosion pull, force with flyingFor and stun, using ROUNDS's scale flags, line of sight and immunity, once per enemy per blast; Orange's and Blue's blasts, their own or the partner's, only heal them (VS's horde stands on the player, so Explosive Bullet, Timed Detonation and Bombs Away would blow up their owner)",
+      "symbol": "ArenaEffectPatches.Blast"
+    },
+    {
+      "id": "r_particle_pulse_guard",
+      "game": "rounds",
+      "target": "ParticleExplosionModifier.Start",
+      "kind": "prefix",
+      "does": "skipped on an object with no ParticleSystem (Healing field's circle: plain ROUNDS throws there)",
+      "symbol": "ArenaEffectPatches.PulseNeedsParticles"
+    },
+    {
+      "id": "r_gun_black",
+      "game": "rounds",
+      "target": "Holdable.SetTeamColors",
+      "kind": "postfix",
+      "does": "the gun's masked sprites (Handle, Barrel) come on in gun black (tuning gunShade) with their masks off, after ROUNDS colours a gun: ROUNDS shows its gun as a soft shadow (SFPolygon), which our frame has no shadow pass for",
+      "symbol": "GunLookPatches.GunBlack"
+    },
+    {
+      "id": "r_overpower_guard",
+      "game": "rounds",
+      "target": "Explosion_Overpower.HitPlayer",
+      "kind": "prefix",
+      "does": "safety net: no Overpower call with a null CharacterData or a missing spawner (the NRE that aborted the whole blast)",
+      "symbol": "ArenaEffectPatches.OverpowerNeedsPlayer"
+    },
+    {
+      "id": "r_dazzle",
+      "game": "rounds",
+      "target": "StunPlayer.Go",
+      "kind": "prefix",
+      "does": "Dazzle stuns the VS enemy it is attached to (no NRE); on a wall it does nothing",
+      "symbol": "ArenaEffectPatches.DazzleEnemy"
+    },
+    {
+      "id": "r_dazzle_one",
+      "game": "rounds",
+      "target": "ThereCanOnlyBeOne.Start",
+      "kind": "prefix",
+      "does": "one Dazzle per VS enemy (or per map piece) instead of one for the whole shared sandbox map",
+      "symbol": "ArenaEffectPatches.OnePerEnemy"
+    },
+    {
+      "id": "r_follow_enemy",
+      "game": "rounds",
+      "target": "FollowPlayer.LateUpdate",
+      "kind": "prefix",
+      "does": "FollowPlayer{target=Other} (Chilling Presence and Lifestealer victim particles) sits on the enemy the aura chose, else the closest enemy, else is parked; no per-frame NRE and never on the partner",
+      "symbol": "ArenaEffectPatches.FollowEnemy"
+    },
+    {
+      "id": "m_thank_you",
+      "game": "rounds",
+      "target": "HealthHandler.TakeDamage",
+      "kind": "prefix",
+      "does": "Thank You Sir, May I Have Another?: each VS hit that lands (Arena.VSHit) adds the card's max and current ammo, as a ROUNDS bullet hit would (applied only when PCE is installed)",
+      "symbol": "ArenaModHooks.ThankYouVS"
+    },
+    {
+      "id": "r_view_edge_bounce",
+      "game": "rounds",
+      "target": "ScreenEdgeBounce.Start",
+      "kind": "postfix",
+      "does": "Bouncy, Riccochet, Mayhem, Trickster, Target Bounce and Super Ball bullets bounce at the VS view's edges (ArenaViewCam), not at ROUNDS's menu camera 1000 units above the arena",
+      "symbol": "ArenaTargetPatches.EdgeOnVSView"
+    },
+    {
+      "id": "r_view_looper",
+      "game": "rounds",
+      "target": "Looper.Awake",
+      "kind": "postfix",
+      "does": "Looper wraps bullets at the VS view's edges",
+      "symbol": "ArenaTargetPatches.LoopOnVSView"
+    },
+    {
+      "id": "r_view_bounds_point",
+      "game": "rounds",
+      "target": "OutOfBoundsHandler.GetPoint",
+      "kind": "prefix",
+      "does": "ROUNDS's fixed screen box becomes the VS level view, just inside the level walls, so PCE Pac-Bullets and Pac-Player wrap there",
+      "symbol": "ArenaTargetPatches.BoundsOnVSView"
+    },
+    {
+      "id": "r_target_homing",
+      "game": "rounds",
+      "target": "Homing.Update",
+      "kind": "prefix",
+      "does": "Homing bullets curve toward the closest visible VS enemy, never toward the shooter or the partner",
+      "symbol": "ArenaTargetPatches.HomeOnEnemy"
+    },
+    {
+      "id": "r_target_bounce",
+      "game": "rounds",
+      "target": "BounceEffectRetarget.DoBounce",
+      "kind": "prefix",
+      "does": "Target Bounce re-aims at the closest visible VS enemy after a bounce (0.1 s pause, aim line)",
+      "symbol": "ArenaTargetPatches.RetargetEnemy"
+    },
+    {
+      "id": "r_target_radar",
+      "game": "rounds",
+      "target": "RadarShot.Go",
+      "kind": "prefix",
+      "does": "Radar Shot auto-fires attack-level shots at the closest visible VS enemy in range, never at the partner",
+      "symbol": "ArenaTargetPatches.RadarEnemy"
+    },
+    {
+      "id": "r_target_chase",
+      "game": "rounds",
+      "target": "Chase.Update",
+      "kind": "prefix",
+      "does": "Chase's +60% speed turns on when moving toward a visible VS enemy, not toward the partner",
+      "symbol": "ArenaTargetPatches.ChaseEnemy"
+    },
+    {
+      "id": "r_target_saw_owner",
+      "game": "rounds",
+      "target": "Saw.Start",
+      "kind": "prefix",
+      "does": "Saw's owner from the nearest SpawnedAttack, else the player it sits on (Abyssal Countdown's saw: an NRE in plain ROUNDS)",
+      "symbol": "ArenaTargetPatches.SawOwner"
+    },
+    {
+      "id": "r_target_saw",
+      "game": "rounds",
+      "target": "Saw.Update",
+      "kind": "prefix",
+      "does": "Saw and Abyssal Countdown saw the closest visible VS enemy (continuous damage plus both pushes); the partner is never shoved",
+      "symbol": "ArenaTargetPatches.SawEnemies"
+    },
+    {
+      "id": "r_target_radiance",
+      "game": "rounds",
+      "target": "LineRangeEffect.Update",
+      "kind": "prefix",
+      "does": "Radiance rings hit and push the closest visible VS enemy once per ring, never the partner",
+      "symbol": "ArenaTargetPatches.RadianceRing"
+    },
+    {
+      "id": "r_target_aura",
+      "game": "rounds",
+      "target": "PlayerInRangeTrigger.Update",
+      "kind": "prefix",
+      "does": "Chilling Presence and Lifestealer auras fire on the closest visible VS enemy in range (ROUNDS: nobody solo, the partner in co-op)",
+      "symbol": "ArenaTargetPatches.AuraOnEnemies"
+    },
+    {
+      "id": "r_target_chill",
+      "game": "rounds",
+      "target": "PlayerInRangeSlow.Update",
+      "kind": "prefix",
+      "does": "Chilling Presence's additive slow lands on the aura's enemy",
+      "symbol": "ArenaTargetPatches.ChillEnemy"
+    },
+    {
+      "id": "r_target_drain",
+      "game": "rounds",
+      "target": "DealDamageToPlayer.Go",
+      "kind": "prefix",
+      "does": "Lifestealer's drain hits the aura's enemy (the owner's heal stays native); Demonic Pact's self-cost is untouched",
+      "symbol": "ArenaTargetPatches.DrainEnemy"
+    },
+    {
+      "id": "r_target_shield_charge",
+      "game": "rounds",
+      "target": "ShieldCharge.Update",
+      "kind": "postfix",
+      "does": "Shield Charge bumps each VS enemy once per charge: damage, knockback, recoil and the automatic block",
+      "symbol": "ArenaTargetPatches.ChargeIntoEnemies"
+    },
+    {
+      "id": "r_partner_charge",
+      "game": "rounds",
+      "target": "ShieldCharge.Collide",
+      "kind": "prefix",
+      "does": "co-op: charging into the partner no longer knocks them back",
+      "symbol": "ArenaTargetPatches.NoPartnerCharge"
+    },
+    {
+      "id": "r_target_thruster_life",
+      "game": "rounds",
+      "target": "Thruster.Start",
+      "kind": "postfix",
+      "does": "a thruster stuck to a light VS enemy lasts the full player time (bosses keep ROUNDS's x0.2)",
+      "symbol": "ArenaTargetPatches.ThrusterLife"
+    },
+    {
+      "id": "r_target_thruster_push",
+      "game": "rounds",
+      "target": "Thruster.FixedUpdate",
+      "kind": "prefix",
+      "does": "a thruster pushes the VS enemy it sticks to on every physics step (continuous force)",
+      "symbol": "ArenaTargetPatches.ThrusterPush"
+    },
+    {
+      "id": "r_target_remote",
+      "game": "rounds",
+      "target": "RemoteControl.Update",
+      "kind": "transpiler",
+      "does": "ROUNDS's own Update runs; only its steering direction is replaced: Remote bullets steer toward the VS cursor, or the VS aim, instead of the hidden ROUNDS window's mouse",
+      "symbol": "ArenaTargetPatches.SteerWithVS"
+    },
+    {
+      "id": "r_steam_quiet",
+      "game": "rounds",
+      "target": "SteamManager.Awake",
+      "kind": "prefix",
+      "does": "the hidden ROUNDS engine skips SteamAPI.Init (ROUNDS's manager stays, uninitialised, as after a failed Init), so Steam shows the player in VS only instead of switching between the two games; ROUNDS started normally is untouched",
+      "symbol": "SteamQuiet.SkipSteamInit"
+    },
+    {
+      "id": "r_teleport_from",
+      "game": "rounds",
+      "target": "Teleport.Go",
+      "kind": "prefix",
+      "does": "remember where a Teleport starts",
+      "symbol": "ArenaTargetPatches.TeleportFrom"
+    },
+    {
+      "id": "r_teleport_inside",
+      "game": "rounds",
+      "target": "Teleport.Go",
+      "kind": "postfix",
+      "does": "Teleport never lands outside the level (past VS's bound walls or ceiling); ROUNDS's 10 steps are re-run inside the level view",
+      "symbol": "ArenaTargetPatches.TeleportInside"
+    },
+    {
+      "id": "r_bullets_straight",
+      "game": "rounds",
+      "target": "MoveTransform.Update",
+      "kind": "prefix",
+      "does": "seen from above nothing falls: arena bullets fly straight (gravity off)",
+      "symbol": "ArenaPatches.BulletsFlyStraight"
+    },
+    {
+      "id": "r_shot_count",
+      "game": "rounds",
+      "target": "Gun.Attack",
+      "kind": "postfix",
+      "does": "count each seat's shots (logs and the gun-fired test check)",
+      "symbol": "ArenaPatches.ShotFired"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Vampire Rounds: the MelonLoader mod for Vampire Survivors (IL2CPP, Unity 6). Built against Il2CppInterop assemblies
+       generated from the player's own game (MelonLoader makes the same ones on first start); none of them ship. -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>VampireRounds</AssemblyName>
+    <RootNamespace>VampireRounds.Vs</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <DefineConstants>$(DefineConstants);VSMOD</DefineConstants>
+    <NoWarn>CS1591;CS0649;CS0169;CS0414;CS8981</NoWarn>
+    <VsDir Condition="'$(VsDir)' == ''">D:\SteamLibrary\steamapps\common\Vampire Survivors</VsDir>
+    <Interop Condition="'$(Interop)' == ''">$(USERPROFILE)\vsr-work\vs-interop</Interop>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="MelonLoader"><HintPath>$(VsDir)\MelonLoader\net6\MelonLoader.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(VsDir)\MelonLoader\net6\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Il2CppInterop.Runtime"><HintPath>$(VsDir)\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Il2CppInterop.Common"><HintPath>$(VsDir)\MelonLoader\net6\Il2CppInterop.Common.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <InteropDlls Include="$(Interop)\*.dll" Exclude="$(Interop)\netstandard.dll" />
+    <Reference Include="@(InteropDlls->'%(FullPath)')" Private="false" />
+  </ItemGroup>
+</Project>

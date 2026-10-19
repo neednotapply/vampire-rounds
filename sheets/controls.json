@@ -1,0 +1,55 @@
+{
+  "sheet": "controls",
+  "about": "How Orange and Blue are played. Moving is VS's own (its keys and sticks). The ROUNDS gun fires by itself whenever an enemy is in range (VS weapons do too) and aims at the nearest one; the keyboard player's mouse takes over the aim while it moves. ROUNDS's block is the extra button. Card picks: ROUNDS's pick screen, driven with VS's keys, the stick or the mouse.",
+  "columns": {
+    "id": "action",
+    "keyboard": "player 1 on keyboard and mouse",
+    "gamepad": "a player on a gamepad",
+    "symbol": "Class.Method that reads it",
+    "notes": "behaviour"
+  },
+  "rows": [
+    {
+      "id": "move",
+      "keyboard": "VS's movement keys (WASD / arrows)",
+      "gamepad": "left stick",
+      "symbol": "Session.WriteSeat",
+      "notes": "VS moves the character; ROUNDS's legs walk with it"
+    },
+    {
+      "id": "aim",
+      "keyboard": "the mouse (for a few seconds after it moves)",
+      "gamepad": "automatic: the nearest enemy",
+      "symbol": "SeatInput.Aim",
+      "notes": "otherwise (and always on a gamepad) the gun aims at the nearest enemy on screen"
+    },
+    {
+      "id": "fire",
+      "keyboard": "automatic; hold left mouse to fire with no enemy near",
+      "gamepad": "automatic; hold right trigger to fire with no enemy near",
+      "symbol": "SeatInput.Aim",
+      "notes": "ROUNDS's attack speed, ammo and reload decide the rate"
+    },
+    {
+      "id": "block",
+      "keyboard": "right mouse or Space",
+      "gamepad": "left trigger or left shoulder",
+      "symbol": "SeatInput.Block",
+      "notes": "ROUNDS's block: stops VS hits for its window, then cools down (cards change it)"
+    },
+    {
+      "id": "pick_move",
+      "keyboard": "A / D, left / right arrows, or the mouse over a card",
+      "gamepad": "left stick or d-pad left / right",
+      "symbol": "SeatInput.PickNav",
+      "notes": "moves ROUNDS's card selection"
+    },
+    {
+      "id": "pick_take",
+      "keyboard": "Space, Enter or left click",
+      "gamepad": "A (south button)",
+      "symbol": "SeatInput.PickAccept",
+      "notes": "takes the selected card"
+    }
+  ]
+}

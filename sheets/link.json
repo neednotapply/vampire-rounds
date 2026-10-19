@@ -1,0 +1,1414 @@
+{
+  "sheet": "link",
+  "about": "The shared-memory link between Vampire Survivors (the VS mod) and the hidden ROUNDS (the engine), one block named Local\\VampireRoundsArena1. Each row is one field: block + offset make its address; the generated ArenaLink constants (src/Shared/Generated/Link.g.cs) come from these rows. Control = VS writes, ROUNDS reads; result = ROUNDS writes, VS reads; per-seat blocks repeat for seat 0 (Orange, ROUNDS player 0) and seat 1 (Blue, ROUNDS player 1); ring entries repeat inside their ring. Counters only go up, so no press, hit or event is lost.",
+  "columns": {
+    "id": "constant name in ArenaLink",
+    "block": "layout | control | seat | event | pick | target | result | rseat | hit | fx | status",
+    "offset": "byte offset inside its block (layout rows: the value itself)",
+    "type": "int | float | const",
+    "writer": "vs | rounds | both | none (layout constants)",
+    "meaning": "what the field holds"
+  },
+  "rows": [
+    {
+      "id": "Magic",
+      "block": "layout",
+      "offset": 1448235569,
+      "type": "const",
+      "writer": "none",
+      "meaning": "'VRA1': both sides write it into their block's first int"
+    },
+    {
+      "id": "MaxW",
+      "block": "layout",
+      "offset": 1280,
+      "type": "const",
+      "writer": "none",
+      "meaning": "widest ROUNDS picture (pixels)"
+    },
+    {
+      "id": "MaxH",
+      "block": "layout",
+      "offset": 720,
+      "type": "const",
+      "writer": "none",
+      "meaning": "tallest ROUNDS picture (pixels)"
+    },
+    {
+      "id": "Seats",
+      "block": "layout",
+      "offset": 2,
+      "type": "const",
+      "writer": "none",
+      "meaning": "ROUNDS players: seat 0 Orange (ROUNDS player 0), seat 1 Blue (ROUNDS player 1)"
+    },
+    {
+      "id": "ControlOff",
+      "block": "layout",
+      "offset": 0,
+      "type": "const",
+      "writer": "none",
+      "meaning": "control block start"
+    },
+    {
+      "id": "ResultOff",
+      "block": "layout",
+      "offset": 65536,
+      "type": "const",
+      "writer": "none",
+      "meaning": "result block start"
+    },
+    {
+      "id": "FramesOff",
+      "block": "layout",
+      "offset": 131072,
+      "type": "const",
+      "writer": "none",
+      "meaning": "first of 3 world frames then 3 UI frames, MaxW x MaxH x 4 bytes each"
+    },
+    {
+      "id": "SlotSize",
+      "block": "layout",
+      "offset": 64,
+      "type": "const",
+      "writer": "none",
+      "meaning": "bytes per seat block (control and result)"
+    },
+    {
+      "id": "Slot2Size",
+      "block": "layout",
+      "offset": 32,
+      "type": "const",
+      "writer": "none",
+      "meaning": "bytes per second seat block"
+    },
+    {
+      "id": "EventSize",
+      "block": "layout",
+      "offset": 32,
+      "type": "const",
+      "writer": "none",
+      "meaning": "bytes per event"
+    },
+    {
+      "id": "EventRing",
+      "block": "layout",
+      "offset": 64,
+      "type": "const",
+      "writer": "none",
+      "meaning": "events in the ring"
+    },
+    {
+      "id": "TargetSize",
+      "block": "layout",
+      "offset": 24,
+      "type": "const",
+      "writer": "none",
+      "meaning": "bytes per enemy target"
+    },
+    {
+      "id": "MaxTargets",
+      "block": "layout",
+      "offset": 1024,
+      "type": "const",
+      "writer": "none",
+      "meaning": "most enemies mirrored into ROUNDS at once (nearest to the camera first)"
+    },
+    {
+      "id": "PickedSize",
+      "block": "layout",
+      "offset": 64,
+      "type": "const",
+      "writer": "none",
+      "meaning": "bytes per picked card name"
+    },
+    {
+      "id": "MaxPicked",
+      "block": "layout",
+      "offset": 8,
+      "type": "const",
+      "writer": "none",
+      "meaning": "cards one pick request can return"
+    },
+    {
+      "id": "HitSize",
+      "block": "layout",
+      "offset": 32,
+      "type": "const",
+      "writer": "none",
+      "meaning": "bytes per hit"
+    },
+    {
+      "id": "HitRing",
+      "block": "layout",
+      "offset": 512,
+      "type": "const",
+      "writer": "none",
+      "meaning": "hits in the ring (explosions hit many enemies in one frame)"
+    },
+    {
+      "id": "FxSize",
+      "block": "layout",
+      "offset": 32,
+      "type": "const",
+      "writer": "none",
+      "meaning": "bytes per effect event"
+    },
+    {
+      "id": "FxRing",
+      "block": "layout",
+      "offset": 512,
+      "type": "const",
+      "writer": "none",
+      "meaning": "effect events in the ring"
+    },
+    {
+      "id": "StatusSize",
+      "block": "layout",
+      "offset": 32,
+      "type": "const",
+      "writer": "none",
+      "meaning": "bytes per status row"
+    },
+    {
+      "id": "MaxStatus",
+      "block": "layout",
+      "offset": 768,
+      "type": "const",
+      "writer": "none",
+      "meaning": "enemies with a running status listed at once"
+    },
+    {
+      "id": "C_Magic",
+      "block": "control",
+      "offset": 0,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "Magic once VS has written the block"
+    },
+    {
+      "id": "C_Beat",
+      "block": "control",
+      "offset": 4,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "VS frame counter: ROUNDS calls VS gone when it stands still for 3 s"
+    },
+    {
+      "id": "C_Pid",
+      "block": "control",
+      "offset": 8,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "VS process id: the hidden ROUNDS ends itself when it is gone"
+    },
+    {
+      "id": "C_Mode",
+      "block": "control",
+      "offset": 12,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "0 menus (nothing of ROUNDS shows), 1 a Vampire Rounds run"
+    },
+    {
+      "id": "C_CamX",
+      "block": "control",
+      "offset": 16,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "VS camera centre x (VS units)"
+    },
+    {
+      "id": "C_CamY",
+      "block": "control",
+      "offset": 20,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "VS camera centre y (VS units)"
+    },
+    {
+      "id": "C_CamOrtho",
+      "block": "control",
+      "offset": 24,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "VS camera half height (VS units)"
+    },
+    {
+      "id": "C_Aspect",
+      "block": "control",
+      "offset": 28,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "VS camera aspect (width / height)"
+    },
+    {
+      "id": "C_FrameW",
+      "block": "control",
+      "offset": 32,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "picture width VS wants (pixels, at most MaxW)"
+    },
+    {
+      "id": "C_FrameH",
+      "block": "control",
+      "offset": 36,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "picture height VS wants (pixels, at most MaxH)"
+    },
+    {
+      "id": "C_Scale",
+      "block": "control",
+      "offset": 40,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "VS units per ROUNDS unit (C_CamOrtho / tuning roundsHalfView)"
+    },
+    {
+      "id": "C_Reading",
+      "block": "control",
+      "offset": 44,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "frame buffer index VS is copying now (ROUNDS never writes into it)"
+    },
+    {
+      "id": "C_Run",
+      "block": "control",
+      "offset": 48,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "run serial: a new run clears targets, statuses and decks on the ROUNDS side"
+    },
+    {
+      "id": "C_TargetCount",
+      "block": "control",
+      "offset": 52,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "rows used in the target table"
+    },
+    {
+      "id": "C_EventWrite",
+      "block": "control",
+      "offset": 56,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "events written so far (ring index = count mod EventRing)"
+    },
+    {
+      "id": "C_Paused",
+      "block": "control",
+      "offset": 60,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "1 while VS gameplay is paused (pause menu, level-up, chest): ROUNDS's time stands still"
+    },
+    {
+      "id": "C_Slots",
+      "block": "control",
+      "offset": 64,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "seat blocks start (seat * SlotSize)"
+    },
+    {
+      "id": "C_Events",
+      "block": "control",
+      "offset": 192,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "event ring start"
+    },
+    {
+      "id": "C_Pick",
+      "block": "control",
+      "offset": 2304,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "pick request block"
+    },
+    {
+      "id": "C_Volume",
+      "block": "control",
+      "offset": 2400,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "VS sound-effects volume (0..1): ROUNDS's sounds play at it"
+    },
+    {
+      "id": "C_Targets",
+      "block": "control",
+      "offset": 4096,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "target table start (row * TargetSize)"
+    },
+    {
+      "id": "C_Slot2",
+      "block": "control",
+      "offset": 2560,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "second seat blocks start (seat * Slot2Size): what only some cards read"
+    },
+    {
+      "id": "S_Present",
+      "block": "seat",
+      "offset": 0,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "1 while a VS player plays this seat"
+    },
+    {
+      "id": "S_MoveX",
+      "block": "seat",
+      "offset": 4,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "VS movement input x (-1..1): ROUNDS walks its legs and faces"
+    },
+    {
+      "id": "S_MoveY",
+      "block": "seat",
+      "offset": 8,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "VS movement input y"
+    },
+    {
+      "id": "S_AimX",
+      "block": "seat",
+      "offset": 12,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "aim direction x (auto-aim or mouse / right stick)"
+    },
+    {
+      "id": "S_AimY",
+      "block": "seat",
+      "offset": 16,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "aim direction y"
+    },
+    {
+      "id": "S_ShootHeld",
+      "block": "seat",
+      "offset": 20,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "1 while the gun should fire (an enemy is in range, or the fire button is held)"
+    },
+    {
+      "id": "S_BlockPresses",
+      "block": "seat",
+      "offset": 24,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "block presses so far"
+    },
+    {
+      "id": "S_AcceptPresses",
+      "block": "seat",
+      "offset": 28,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "card pick: take presses so far"
+    },
+    {
+      "id": "S_MouseX",
+      "block": "seat",
+      "offset": 32,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "card pick: mouse x in the picture (0..1, -1 none)"
+    },
+    {
+      "id": "S_MouseY",
+      "block": "seat",
+      "offset": 36,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "card pick: mouse y in the picture (0..1)"
+    },
+    {
+      "id": "S_NavPresses",
+      "block": "seat",
+      "offset": 40,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "card pick: left/right presses so far"
+    },
+    {
+      "id": "S_NavDir",
+      "block": "seat",
+      "offset": 44,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "card pick: direction of the last press (-1, +1)"
+    },
+    {
+      "id": "S_PosX",
+      "block": "seat",
+      "offset": 48,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "the VS player's position x (VS units): ROUNDS holds its player there"
+    },
+    {
+      "id": "S_PosY",
+      "block": "seat",
+      "offset": 52,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "the VS player's position y"
+    },
+    {
+      "id": "S_Life",
+      "block": "seat",
+      "offset": 56,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "VS life serial (run start, revive): a new value revives ROUNDS's player at full health"
+    },
+    {
+      "id": "U_CursorX",
+      "block": "seat2",
+      "offset": 0,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "the mouse in the world (VS units), for Remote-style cards"
+    },
+    {
+      "id": "U_CursorY",
+      "block": "seat2",
+      "offset": 4,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "the mouse in the world y"
+    },
+    {
+      "id": "U_CursorOn",
+      "block": "seat2",
+      "offset": 8,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "1 when the cursor is this seat's (the mouse player)"
+    },
+    {
+      "id": "U_DownHeld",
+      "block": "seat2",
+      "offset": 12,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "1 while down is held (card mods that read ROUNDS's down key)"
+    },
+    {
+      "id": "U_SwitchPresses",
+      "block": "seat2",
+      "offset": 16,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "weapon-switch presses so far (card mods with a switchable weapon)"
+    },
+    {
+      "id": "E_Serial",
+      "block": "event",
+      "offset": 0,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "event number + 1 (written first)"
+    },
+    {
+      "id": "E_Type",
+      "block": "event",
+      "offset": 4,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "Ev* code"
+    },
+    {
+      "id": "E_Slot",
+      "block": "event",
+      "offset": 8,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "seat"
+    },
+    {
+      "id": "E_A",
+      "block": "event",
+      "offset": 12,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "first value (damage / heal amount)"
+    },
+    {
+      "id": "E_B",
+      "block": "event",
+      "offset": 16,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "second value (direction x)"
+    },
+    {
+      "id": "E_C",
+      "block": "event",
+      "offset": 20,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "third value (direction y)"
+    },
+    {
+      "id": "E_D",
+      "block": "event",
+      "offset": 24,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "fourth value"
+    },
+    {
+      "id": "E_Life",
+      "block": "event",
+      "offset": 28,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "VS life serial the event belongs to"
+    },
+    {
+      "id": "EvDamage",
+      "block": "layout",
+      "offset": 1,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a VS enemy hurt the player: ROUNDS's own TakeDamage (blocked while ROUNDS's block is up)"
+    },
+    {
+      "id": "EvHeal",
+      "block": "layout",
+      "offset": 2,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a VS pickup healed the player: ROUNDS's own Heal"
+    },
+    {
+      "id": "EvKill",
+      "block": "layout",
+      "offset": 3,
+      "type": "const",
+      "writer": "none",
+      "meaning": "VS killed the player (ROUNDS player dies too)"
+    },
+    {
+      "id": "EvBlockedHit",
+      "block": "layout",
+      "offset": 4,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a VS hit landed during the block: ROUNDS sees it blocked"
+    },
+    {
+      "id": "EvCards",
+      "block": "layout",
+      "offset": 5,
+      "type": "const",
+      "writer": "none",
+      "meaning": "reserved: deck sync"
+    },
+    {
+      "id": "P_Serial",
+      "block": "pick",
+      "offset": 0,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "pick request number (a new value starts a pick)"
+    },
+    {
+      "id": "P_Slot",
+      "block": "pick",
+      "offset": 4,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "seat that picks"
+    },
+    {
+      "id": "P_Count",
+      "block": "pick",
+      "offset": 8,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "cards to pick (0 = give the pick up)"
+    },
+    {
+      "id": "T_Id",
+      "block": "target",
+      "offset": 0,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "enemy life id (new for every spawn of a pooled enemy)"
+    },
+    {
+      "id": "T_X",
+      "block": "target",
+      "offset": 4,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "enemy centre x (VS units)"
+    },
+    {
+      "id": "T_Y",
+      "block": "target",
+      "offset": 8,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "enemy centre y (VS units)"
+    },
+    {
+      "id": "T_R",
+      "block": "target",
+      "offset": 12,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "enemy hit radius (VS units)"
+    },
+    {
+      "id": "T_Flags",
+      "block": "target",
+      "offset": 16,
+      "type": "int",
+      "writer": "vs",
+      "meaning": "TfLight | TfBoss | TfNoStatus"
+    },
+    {
+      "id": "T_Hp",
+      "block": "target",
+      "offset": 20,
+      "type": "float",
+      "writer": "vs",
+      "meaning": "enemy health (VS units, for logs and percent-damage cards)"
+    },
+    {
+      "id": "TfLight",
+      "block": "layout",
+      "offset": 1,
+      "type": "const",
+      "writer": "none",
+      "meaning": "small enemy: pushes move it"
+    },
+    {
+      "id": "TfBoss",
+      "block": "layout",
+      "offset": 2,
+      "type": "const",
+      "writer": "none",
+      "meaning": "boss: weaker slows and stuns"
+    },
+    {
+      "id": "TfNoStatus",
+      "block": "layout",
+      "offset": 4,
+      "type": "const",
+      "writer": "none",
+      "meaning": "statuses do not apply now"
+    },
+    {
+      "id": "R_Magic",
+      "block": "result",
+      "offset": 0,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "Magic once ROUNDS has written the block"
+    },
+    {
+      "id": "R_Beat",
+      "block": "result",
+      "offset": 4,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "ROUNDS frame counter: VS calls ROUNDS gone when it stands still for 3 s"
+    },
+    {
+      "id": "R_Pid",
+      "block": "result",
+      "offset": 8,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "hidden ROUNDS process id"
+    },
+    {
+      "id": "R_State",
+      "block": "result",
+      "offset": 12,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "StateOff (loading), StateArena, StatePicking"
+    },
+    {
+      "id": "R_FrameSerial",
+      "block": "result",
+      "offset": 16,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "pictures published so far"
+    },
+    {
+      "id": "R_Ready",
+      "block": "result",
+      "offset": 20,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "frame buffer index of the newest picture"
+    },
+    {
+      "id": "R_FrameCamX",
+      "block": "result",
+      "offset": 24,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "camera centre x the newest picture shows (VS units)"
+    },
+    {
+      "id": "R_FrameCamY",
+      "block": "result",
+      "offset": 28,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "camera centre y (VS units)"
+    },
+    {
+      "id": "R_FrameOrtho",
+      "block": "result",
+      "offset": 32,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "half height it shows (VS units)"
+    },
+    {
+      "id": "R_FrameW",
+      "block": "result",
+      "offset": 36,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "its width (pixels)"
+    },
+    {
+      "id": "R_FrameH",
+      "block": "result",
+      "offset": 40,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "its height (pixels)"
+    },
+    {
+      "id": "R_HitWrite",
+      "block": "result",
+      "offset": 44,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "hits written so far"
+    },
+    {
+      "id": "R_PickDone",
+      "block": "result",
+      "offset": 48,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "the last pick request finished"
+    },
+    {
+      "id": "R_PickedCount",
+      "block": "result",
+      "offset": 52,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "cards picked in it"
+    },
+    {
+      "id": "R_Run",
+      "block": "result",
+      "offset": 56,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "run serial ROUNDS has caught up with"
+    },
+    {
+      "id": "R_CardCount",
+      "block": "result",
+      "offset": 60,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "ROUNDS cards loaded (0 while loading)"
+    },
+    {
+      "id": "R_Slots",
+      "block": "result",
+      "offset": 64,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "seat result blocks start"
+    },
+    {
+      "id": "R_Picked",
+      "block": "result",
+      "offset": 256,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "picked card ids (PickedSize bytes each)"
+    },
+    {
+      "id": "R_Hits",
+      "block": "result",
+      "offset": 1024,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "hit ring start"
+    },
+    {
+      "id": "R_FxWrite",
+      "block": "result",
+      "offset": 17408,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "effect events written so far"
+    },
+    {
+      "id": "R_Fx",
+      "block": "result",
+      "offset": 17412,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "effect ring start"
+    },
+    {
+      "id": "R_StatusFrame",
+      "block": "result",
+      "offset": 33800,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "status table sequence lock (odd while writing)"
+    },
+    {
+      "id": "R_StatusCount",
+      "block": "result",
+      "offset": 33804,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "status rows"
+    },
+    {
+      "id": "R_Status",
+      "block": "result",
+      "offset": 33808,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "status table start"
+    },
+    {
+      "id": "StateOff",
+      "block": "layout",
+      "offset": 0,
+      "type": "const",
+      "writer": "none",
+      "meaning": "ROUNDS is loading or has no run"
+    },
+    {
+      "id": "StateArena",
+      "block": "layout",
+      "offset": 1,
+      "type": "const",
+      "writer": "none",
+      "meaning": "ROUNDS plays the run"
+    },
+    {
+      "id": "StatePicking",
+      "block": "layout",
+      "offset": 2,
+      "type": "const",
+      "writer": "none",
+      "meaning": "ROUNDS shows its card pick"
+    },
+    {
+      "id": "Q_Present",
+      "block": "rseat",
+      "offset": 0,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "1 when the ROUNDS player of this seat exists"
+    },
+    {
+      "id": "Q_X",
+      "block": "rseat",
+      "offset": 4,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "where it is (VS units)"
+    },
+    {
+      "id": "Q_Y",
+      "block": "rseat",
+      "offset": 8,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "where it is (VS units)"
+    },
+    {
+      "id": "Q_Hp",
+      "block": "rseat",
+      "offset": 12,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "ROUNDS health"
+    },
+    {
+      "id": "Q_MaxHp",
+      "block": "rseat",
+      "offset": 16,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "ROUNDS max health"
+    },
+    {
+      "id": "Q_Dead",
+      "block": "rseat",
+      "offset": 20,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "1 when ROUNDS's player is dead"
+    },
+    {
+      "id": "Q_Blocking",
+      "block": "rseat",
+      "offset": 24,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "1 inside ROUNDS's block window"
+    },
+    {
+      "id": "Q_Blocks",
+      "block": "rseat",
+      "offset": 28,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "blocks done so far"
+    },
+    {
+      "id": "Q_AimX",
+      "block": "rseat",
+      "offset": 32,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "where the gun points x"
+    },
+    {
+      "id": "Q_AimY",
+      "block": "rseat",
+      "offset": 36,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "where the gun points y"
+    },
+    {
+      "id": "Q_Cards",
+      "block": "rseat",
+      "offset": 40,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "cards the player has"
+    },
+    {
+      "id": "Q_Life",
+      "block": "rseat",
+      "offset": 44,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "the VS life serial ROUNDS has done"
+    },
+    {
+      "id": "Q_MoveMul",
+      "block": "rseat",
+      "offset": 48,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "ROUNDS movement-speed multiplier from cards (VS move speed follows it)"
+    },
+    {
+      "id": "Q_Shots",
+      "block": "rseat",
+      "offset": 52,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "shots fired so far"
+    },
+    {
+      "id": "Q_Reloading",
+      "block": "rseat",
+      "offset": 56,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "1 while the gun reloads"
+    },
+    {
+      "id": "H_Serial",
+      "block": "hit",
+      "offset": 0,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "hit number + 1 (written last)"
+    },
+    {
+      "id": "H_Target",
+      "block": "hit",
+      "offset": 4,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "T_Id of the enemy"
+    },
+    {
+      "id": "H_Damage",
+      "block": "hit",
+      "offset": 8,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "ROUNDS damage (VS scales it)"
+    },
+    {
+      "id": "H_X",
+      "block": "hit",
+      "offset": 12,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "where (VS units)"
+    },
+    {
+      "id": "H_Y",
+      "block": "hit",
+      "offset": 16,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "where (VS units)"
+    },
+    {
+      "id": "H_Slot",
+      "block": "hit",
+      "offset": 20,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "seat that dealt it (-1 none)"
+    },
+    {
+      "id": "H_Kind",
+      "block": "hit",
+      "offset": 24,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "HitBullet | HitDot | HitArea | HitContinuous | HitContact | HitAura"
+    },
+    {
+      "id": "H_Color",
+      "block": "hit",
+      "offset": 28,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "tint rgba (0 none)"
+    },
+    {
+      "id": "HitBullet",
+      "block": "layout",
+      "offset": 0,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a bullet"
+    },
+    {
+      "id": "HitDot",
+      "block": "layout",
+      "offset": 1,
+      "type": "const",
+      "writer": "none",
+      "meaning": "damage over time (summed per frame)"
+    },
+    {
+      "id": "HitArea",
+      "block": "layout",
+      "offset": 2,
+      "type": "const",
+      "writer": "none",
+      "meaning": "an explosion or area"
+    },
+    {
+      "id": "HitContinuous",
+      "block": "layout",
+      "offset": 3,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a beam or saw (summed per frame)"
+    },
+    {
+      "id": "HitContact",
+      "block": "layout",
+      "offset": 4,
+      "type": "const",
+      "writer": "none",
+      "meaning": "the player's body"
+    },
+    {
+      "id": "HitAura",
+      "block": "layout",
+      "offset": 5,
+      "type": "const",
+      "writer": "none",
+      "meaning": "an aura"
+    },
+    {
+      "id": "FX_Serial",
+      "block": "fx",
+      "offset": 0,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "event number + 1 (written last)"
+    },
+    {
+      "id": "FX_Target",
+      "block": "fx",
+      "offset": 4,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "T_Id of the enemy"
+    },
+    {
+      "id": "FX_Type",
+      "block": "fx",
+      "offset": 8,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "Fx* code"
+    },
+    {
+      "id": "FX_A",
+      "block": "fx",
+      "offset": 12,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "value a"
+    },
+    {
+      "id": "FX_B",
+      "block": "fx",
+      "offset": 16,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "value b"
+    },
+    {
+      "id": "FX_C",
+      "block": "fx",
+      "offset": 20,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "value c"
+    },
+    {
+      "id": "FX_D",
+      "block": "fx",
+      "offset": 24,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "value d"
+    },
+    {
+      "id": "FX_Slot",
+      "block": "fx",
+      "offset": 28,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "seat that caused it"
+    },
+    {
+      "id": "FxSlow",
+      "block": "layout",
+      "offset": 1,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a slow landed (a = amount)"
+    },
+    {
+      "id": "FxStun",
+      "block": "layout",
+      "offset": 2,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a stun landed (a = seconds)"
+    },
+    {
+      "id": "FxSilence",
+      "block": "layout",
+      "offset": 3,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a silence landed (a = seconds)"
+    },
+    {
+      "id": "FxDot",
+      "block": "layout",
+      "offset": 4,
+      "type": "const",
+      "writer": "none",
+      "meaning": "damage over time started"
+    },
+    {
+      "id": "FxForce",
+      "block": "layout",
+      "offset": 5,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a push (a, b = velocity change in VS units/s)"
+    },
+    {
+      "id": "FxPull",
+      "block": "layout",
+      "offset": 6,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a pull towards a point (a, b = point, c = force, d = seconds)"
+    },
+    {
+      "id": "FxGravity",
+      "block": "layout",
+      "offset": 7,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a gravity change (shows as a slow)"
+    },
+    {
+      "id": "FxGold",
+      "block": "layout",
+      "offset": 8,
+      "type": "const",
+      "writer": "none",
+      "meaning": "turned to gold (card mod)"
+    },
+    {
+      "id": "FxConfuse",
+      "block": "layout",
+      "offset": 9,
+      "type": "const",
+      "writer": "none",
+      "meaning": "confused (card mod)"
+    },
+    {
+      "id": "FxMurder",
+      "block": "layout",
+      "offset": 10,
+      "type": "const",
+      "writer": "none",
+      "meaning": "reserved"
+    },
+    {
+      "id": "FxShake",
+      "block": "layout",
+      "offset": 11,
+      "type": "const",
+      "writer": "none",
+      "meaning": "a shake"
+    },
+    {
+      "id": "T_Group",
+      "block": "status",
+      "offset": 0,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "T_Id of the enemy"
+    },
+    {
+      "id": "T_Slow",
+      "block": "status",
+      "offset": 4,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "slow 0..0.9"
+    },
+    {
+      "id": "T_Stun",
+      "block": "status",
+      "offset": 8,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "stun seconds left"
+    },
+    {
+      "id": "T_Silence",
+      "block": "status",
+      "offset": 12,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "silence seconds left"
+    },
+    {
+      "id": "T_Dot",
+      "block": "status",
+      "offset": 16,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "damage-over-time seconds left"
+    },
+    {
+      "id": "T_DotRgba",
+      "block": "status",
+      "offset": 20,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "its colour"
+    },
+    {
+      "id": "T_SFlags",
+      "block": "status",
+      "offset": 24,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "StGold | StConfused | StHeavy | StFlipped"
+    },
+    {
+      "id": "T_Aux",
+      "block": "status",
+      "offset": 28,
+      "type": "float",
+      "writer": "rounds",
+      "meaning": "seconds left of the heavy / flipped status"
+    },
+    {
+      "id": "StGold",
+      "block": "layout",
+      "offset": 1,
+      "type": "const",
+      "writer": "none",
+      "meaning": "gold"
+    },
+    {
+      "id": "StConfused",
+      "block": "layout",
+      "offset": 2,
+      "type": "const",
+      "writer": "none",
+      "meaning": "confused"
+    },
+    {
+      "id": "StHeavy",
+      "block": "layout",
+      "offset": 4,
+      "type": "const",
+      "writer": "none",
+      "meaning": "heavy"
+    },
+    {
+      "id": "StFlipped",
+      "block": "layout",
+      "offset": 8,
+      "type": "const",
+      "writer": "none",
+      "meaning": "flipped"
+    }
+  ]
+}

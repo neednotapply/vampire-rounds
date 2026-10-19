@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "mode": "installed",
+  "games": [
+    {
+      "slug": "vampire-survivors",
+      "role": "primary"
+    },
+    {
+      "slug": "custom-rounds",
+      "role": "companion"
+    }
+  ],
+  "components": [
+    {
+      "id": "main",
+      "kind": "main",
+      "label": "Vampire Rounds",
+      "fileName": "VampireRounds-<version>.zip",
+      "required": true
+    }
+  ],
+  "requirements": [
+    {
+      "kind": "loader",
+      "id": "melonloader"
+    }
+  ],
+  "mappings": [
+    {
+      "component": "main",
+      "from": "Mods/",
+      "to": "{game}/Mods"
+    },
+    {
+      "component": "main",
+      "from": "Plugins/",
+      "to": "{game}/Plugins"
+    },
+    {
+      "component": "main",
+      "from": "UserData/",
+      "to": "{game}/UserData"
+    },
+    {
+      "component": "main",
+      "from": "proxy-rounds/version.dll",
+      "to": "{game:custom-rounds}"
+    }
+  ],
+  "launch": {
+    "kind": "game",
+    "args": [
+      "--vr-rounds",
+      "{game:custom-rounds}"
+    ]
+  },
+  "runtimeData": [
+    "{localappdata}/VampireRounds"
+  ],
+  "notes": {
+    "beforeInstall": "ROUNDS must be on its old-rounds-for-mods Steam beta branch (ROUNDS > Properties > Betas), the version ROUNDS card mods use.",
+    "firstLaunch": "Open Adventures and pick Vampire Rounds (it is first in the list). Your ROUNDS starts hidden in the background to play Orange and Blue: leave ROUNDS closed when you press Play. The very first start takes a minute or two while the mod loader prepares itself."
+  },
+  "test": {
+    "checks": [
+      "engine-ready",
+      "adventure-listed",
+      "run-started",
+      "rounds-drawn",
+      "gun-fired",
+      "enemy-hit",
+      "card-picked"
+    ],
+    "minutes": 5
+  }
+}

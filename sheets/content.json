@@ -1,0 +1,15 @@
+{
+  "sheet": "content",
+  "about": "What each game brings into the mashup, and how it is read. Nothing from either game is copied into the other game's folder or into the upload: ROUNDS runs from the player's own ROUNDS folder, VS from theirs.",
+  "columns": {"id": "content", "game": "rounds | vs", "what": "the real content", "read": "how it reaches the mashup at runtime", "link": "link rows carrying it, or none"},
+  "rows": [
+    {"id": "rounds_players", "game": "rounds", "what": "ROUNDS's two players, Orange and Blue: their particle bodies, faces, legs, arms, gun and health bar", "read": "the hidden ROUNDS makes them with its own PlayerAssigner and renders them every frame", "link": "S_PosX,S_PosY,R_Ready,R_FrameSerial"},
+    {"id": "rounds_gun", "game": "rounds", "what": "ROUNDS's gun, bullets, ammo, reload, block and every card effect, mod cards included", "read": "ROUNDS's own code runs them in the hidden ROUNDS against mirrored VS enemies", "link": "S_ShootHeld,S_AimX,S_AimY,S_BlockPresses,R_Hits"},
+    {"id": "rounds_cards", "game": "rounds", "what": "ROUNDS's cards and its card pick screen (5 cards, rarities, art, descriptions)", "read": "ROUNDS's CardChoice in the hidden ROUNDS, rendered into the shared picture", "link": "C_Pick,R_PickDone,R_Picked"},
+    {"id": "rounds_sounds", "game": "rounds", "what": "ROUNDS's gun, hit, block and pick sounds", "read": "played by the hidden ROUNDS itself at VS's sound-effects volume", "link": "C_Volume"},
+    {"id": "rounds_portraits", "game": "rounds", "what": "Orange's and Blue's pictures in VS's character select", "read": "rendered by the hidden ROUNDS into %LOCALAPPDATA%/VampireRounds/portraits", "link": "none"},
+    {"id": "vs_stage", "game": "vs", "what": "VS's Mad Forest: its map, enemy waves, bosses, Reaper, music, pickups, chests and light sources", "read": "VS plays its own stage from the player's install; the adventure only lists it", "link": "C_Targets,C_CamX,C_CamY"},
+    {"id": "vs_enemies", "game": "vs", "what": "VS's enemies and bosses, their health, damage, knockback, freezing and death (gems, gold, kills)", "read": "read from VS's live enemy list every frame; ROUNDS's hits go through VS's own damage path", "link": "C_Targets,R_Hits,R_Fx,R_Status"},
+    {"id": "vs_progress", "game": "vs", "what": "VS's experience, level-ups, gold, chests, revivals and game over", "read": "VS's own systems; level-ups and chests become ROUNDS picks", "link": "C_Pick"}
+  ]
+}

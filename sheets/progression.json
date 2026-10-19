@@ -1,0 +1,9 @@
+{
+  "sheet": "progression",
+  "about": "When a ROUNDS card pick happens. The pick is ROUNDS's own pick screen (5 cards, its rarity and duplicate rules), shown full screen while VS is paused; the card goes into ROUNDS's player at once.",
+  "columns": {"id": "trigger", "when": "the VS event", "picks": "tuning row giving the number of cards", "symbol": "Class.Method that starts it"},
+  "rows": [
+    {"id": "level_up", "when": "the party levels up in VS (in place of VS's level-up choice of weapons and items)", "picks": "levelUpPicks", "symbol": "Picks.OnLevelUp"},
+    {"id": "chest", "when": "a VS treasure chest is opened (in place of its weapon and item rewards; its gold stays)", "picks": "chestPicks", "symbol": "Picks.OnChest"}
+  ]
+}
