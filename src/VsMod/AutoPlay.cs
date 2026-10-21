@@ -160,6 +160,21 @@ namespace VampireRounds.Vs
             public static void Postfix(CharacterController __instance) => Walk(__instance);
         }
 
+        /// <summary>With no one playing, the guy blocks (ROUNDS's block) when an enemy is about to touch him, asking at most every
+        /// half second (ROUNDS's own block cooldown decides when a block goes up), so block cards are tested too.</summary>
+        public static bool WantsBlock(CharacterController c)
+        {
+            if (!On || !Session.InRun || !Content.IsOurs(c) || Time.unscaledTime < nextBlock) return false;
+            Vector3 p = c.CachedTransform.position;
+            if (Enemies.Nearest(new Vector2(p.x, p.y), BlockRange) == null) return false;
+            nextBlock = Time.unscaledTime + 0.5f;
+            return true;
+        }
+
+        private static float nextBlock;
+        /// <summary>VS units: an enemy this close is about to touch (VS's camera shows about 2.3 above and below the guy).</summary>
+        private const float BlockRange = 0.9f;
+
         /// <summary>With no one playing, Orange walks a slow circle (a quarter turn every two seconds), and steps away from
         /// the horde when it closes in, as a player would (without that it stood in the first bat swarm and fell in two minutes).</summary>
         public static void Walk(CharacterController c)
@@ -167,12 +182,39 @@ namespace VampireRounds.Vs
             if (!On || !Session.InRun || !Content.IsOurs(c)) return;
             float a = Time.time * Mathf.PI / 4f;
             var circle = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
-            Vector3 p = c.CachedTransform.position;
-            var away = Enemies.Away(new Vector2(p.x, p.y), Session.CamHalfH * 0.6f);
-            if (away.sqrMagnitude < 1e-4f) { c.CurrentDirection = circle; return; }
-            var dir = away.normalized;
-            // A little sideways too, so it slips past the horde instead of backing into a wall of it.
-            c.CurrentDirection = (dir + new Vector2(-dir.y, dir.x) * 0.35f + circle * 0.15f).normalized;
+            Vector3 p3 = c.CachedTransform.position;
+            var p = new Vector2(p3.x, p3.y);
+            var away = Enemies.Away(p, Session.CamHalfH * 0.6f);
+            Vector2 want = circle;
+            if (away.sqrMagnitude >= 1e-4f)
+            {
+                var dir = away.normalized;
+                // A little sideways too, so it slips past the horde instead of backing into a wall of it.
+                want = (dir + new Vector2(-dir.y, dir.x) * 0.35f + circle * 0.15f).normalized;
+            }
+            c.CurrentDirection = AvoidWalls(p, want);
+        }
+
+        private static Vector2 lastPos, slideDir;
+        private static float lastPosAt, slideUntil;
+        private static int slideSide = 1;
+
+        /// <summary>VS stops a character at a wall (a building, the library's shelves, a level's edge) and enemies never block
+        /// it, so a guy that wants to walk but has hardly moved in half a second is against a wall: it slides along it and a
+        /// little back for a moment, the side alternating each time (the bot was cornered a lot, 0.3.0).</summary>
+        private static Vector2 AvoidWalls(Vector2 p, Vector2 want)
+        {
+            float now = Time.time;
+            if (now < slideUntil) return slideDir;
+            if (now - lastPosAt < 0.5f) return want;
+            bool stuck = lastPosAt > 0f && now - lastPosAt < 1.5f && Vector2.Distance(p, lastPos) < 0.08f;
+            lastPos = p;
+            lastPosAt = now;
+            if (!stuck) return want;
+            slideSide = -slideSide;
+            slideDir = (new Vector2(-want.y, want.x) * slideSide - want * 0.5f).normalized;
+            slideUntil = now + 1.2f;
+            return slideDir;
         }
     }
 }

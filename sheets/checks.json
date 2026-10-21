@@ -14,6 +14,7 @@
     {"id": "gun-fired", "proves": "ROUNDS's gun fired at VS enemies", "symbol": "TestMode.Mark"},
     {"id": "enemy-hit", "proves": "a ROUNDS bullet hit and damaged a VS enemy", "symbol": "TestMode.Mark"},
     {"id": "card-picked", "proves": "a VS level-up opened ROUNDS's card pick and a card was taken", "symbol": "TestMode.Mark"},
-    {"id": "card-logo-shown", "proves": "a picked ROUNDS card shows as its card-bar square in VS's item area", "symbol": "TestMode.Mark"}
+    {"id": "card-logo-shown", "proves": "a picked ROUNDS card shows as its card-bar square in VS's item area", "symbol": "TestMode.Mark"},
+    {"id": "block-used", "proves": "ROUNDS's block went up in a run (the test player blocks when an enemy closes in), so block cards are exercised", "symbol": "TestMode.Mark"}
   ]
 }

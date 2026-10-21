@@ -231,3 +231,47 @@
   its Canvas turned (CurveAnimation "In" from (0,180,0), startRotation is that turned pose) and its face's CanvasGroup
   at 0. Fixed for the sheet by showing the face (CanvasGroup 1, Canvas/Back off) and running animators on; forcing the
   CurveAnimation start pose made it worse (it is the turned pose).
+- 0.3.0 published 2026-10-21 (release ca43b46b, Melty test 67578fc5 passed 3/3, footage reviewed); went into Melty's
+  safety review.
+
+## 0.4.0 (2026-10-21, creator: "text art" cards, effects that don't fit top-down, near-infinite health, Blue's squares,
+## the test player should block, avoid walls and try many cards)
+- "Text art" (Fr, Th): PCE's own code returns no art for 42 of its cards (GetCardArt() => null: Friendly Bullets, Thank You
+  Sir, Comb, Super Ball, ...) and CMR's Mastering the Trade has none either; ROUNDS shows them blank, 0.3.0's emblem is
+  ours. Every other card's art loads (PCE's asset bundle works: Shuffle, Murder, Pac-Bullets have theirs).
+- Pick cards dealt face down: ROUNDS's own reveal (Canvas CurveAnimation starts Out at (0,180,0); ChangeSelected(true)
+  plays it In the first time the cursor reaches a card). Seen in the dev pick log; not a bug.
+- Health: VS lands ~15 hits/s on a guy in a horde of 100 at 5 min; 0.3.0 let one through per 0.4 s and dropped the rest
+  (907 of 1073 in the creator's log), and Beetle (CR: +5 regen below max) out-healed what was left. Now hits within
+  playerHitCooldown are summed into the next one (Arena.LandHits/LandWaitingHits; "merged" in the status line), every
+  ROUNDS heal on Orange/Blue is x roundsHealScale 0.15 (HealScale prefix on HealthHandler.Heal; VS's own heals are
+  x healScale 0.5 and flagged Arena.VsHeal), and lifesteal/on-damage rewards count only what the enemy had left
+  (VsTarget.Hit, TargetStatus.hpLeft from VS's T_Hp / damageScale): a Flamethrower+lifesteal hit healed 8250 before.
+- Shots "hitting the ceiling": MapsExtended transpiles ScreenEdgeBounce.Update to measure ROUNDS's map (71 x 40 at the
+  origin) instead of the camera; every bouncing bullet in the arena (1000 below) was "under the map", bounced up from
+  (35.6, -20) and its trail ran off the top of the screen. ArenaTargetPatches.EdgeBounceOnVSView (first-priority prefix)
+  runs ROUNDS's rule against ArenaViewCam.View and skips the transpiled method for arena bullets.
+- Bounces: bullets now bounce off VS enemies as off walls (the 0.1.x rule ending them on an enemy is gone), so Bouncy,
+  Riccochet, Mayhem, Super Ball and Trickster chain through a horde; Target Bounce re-aims at the next enemy, never the one
+  it bounced off (VsTarget.Closest skipGroup).
+- Jumps: PlayerJump.Jump on Orange/Blue starts a hop (Arena.StartHop, HopPatch): the body rises over its spot and lands
+  (tuning hopSeconds 0.6 x sqrt(strength), hopHeight 2.2 x strength), and VS hits do not land meanwhile ("hopped over").
+  Pogo hops every 4 s, Super Jump (walk down to charge) hops high. Jetpack/Old Jetpack/extra jumps need ROUNDS's jump
+  button, which VS has none of: still unused (asked the creator).
+- Card-mod bullets that change one world axis (CR ShootingStarMono y x1.025, CometMono x x1.1, MeteorMono y x1.5 while
+  falling, CloudMono x0.9/y0.85, CareenMono zeroing small downward speed = "ground avoidance") bent shots north/south or
+  flattened them; AxisBullets undoes each change and scales the speed along the path instead (Careen: nothing).
+- Gravity and pulls reach VS: FxGravity (Grounded, Crush: slowed; Flip, Toss: lifted = frozen, capped), FxPull (Implode:
+  most of the way to the blast). Thruster's lasting push builds a slide (Enemies.Drift, enemyDriftMax 5, fade 2.5/s);
+  measured force 73695 with two Thrusters.
+- Blue's card-bar squares: ROUNDS's Bar2 template fill is CardBlue 96DCFF05 (pale wash) vs Orange's CarrdOrange FFB32309;
+  over VS it came out grey. CardIcons.StrongFill raises the fill's saturation/alpha to Orange's in its own hue.
+- Test player: blocks when an enemy is within 0.9 VS units (new check block-used, in the recipe), slides along a wall when
+  it has not moved for 0.5 s, and steps 0-4 cards right before taking one. Developers: VAMPIREROUNDS_DEV_CARDS takes
+  "random:N" (N cards from every card, mods' included, logged per run); dev logs of picks, bullets, lines and heals.
+- Player report (Melty, 0.3.0, another player's PC): "boot: open the Vampire Rounds adventure failed: NullReferenceException
+  at SelectAdventuresPage.ConfirmAdventure" and "Cannot generate navigation with no Adventures listed". VS's
+  SelectAdventuresPage.Populate asks HasCollectedItem(RELIC_ATLAS) before each base-game adventure (seen with a dev probe:
+  DevAdventureProbe, dev-only, VAMPIREROUNDS_DEV_NO_ATLAS hides the Atlas); ADV_LIB_001 is one of those slots, so a save
+  without the Atlas listed nothing. Content.EnsureListed (Populate postfix) adds our card when it is missing; verified with
+  the Atlas hidden: card added, boot reached the adventure's menu, the run started and fired.

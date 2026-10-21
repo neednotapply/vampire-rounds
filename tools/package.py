@@ -26,8 +26,9 @@ README = """Vampire Rounds {version}
 =====================
 
 A Vampire Survivors adventure where ROUNDS's Orange Guy and Blue Guy fight with ROUNDS's gun: every level-up is a ROUNDS
-card pick (and a treasure chest, at most once a minute), your cards show as their logos in Vampire Survivors's item slots,
-and five stages (Mad Forest, Inlaid Library, Dairy Plant, Gallo Tower, Cappella Magna) open one by one as you survive each.
+card pick (and a treasure chest, at most once a minute), your cards show as ROUNDS's card-bar squares in Vampire Survivors's
+item slots, ROUNDS's side-view effects are turned into top-down ones (bullets bounce off enemies, jumps are hops over the
+horde, thrusters rocket enemies away), and five stages (Mad Forest, Inlaid Library, Dairy Plant, Gallo Tower, Cappella Magna) open one by one as you survive each.
 Made for Melty (melty.gg): Melty installs it and starts it with one press of Play.
 
 Needs your own Vampire Survivors and your own ROUNDS (on its "old-rounds-for-mods" Steam beta branch), both on Steam.

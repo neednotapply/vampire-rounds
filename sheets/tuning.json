@@ -30,19 +30,37 @@
       "id": "contactDamageScale",
       "value": 0.5,
       "unit": "ROUNDS hp per VS dmg",
-      "why": "VS lands about five enemy touches a second on a surrounded character; one ROUNDS gun clears a horde slower than VS's starting weapons, so a touch takes half its VS damage from ROUNDS's 100 health"
+      "why": "a VS touch takes half its VS damage from Orange's and Blue's ROUNDS health (VS lands about 15 hits a second on a character in a horde of a hundred at 5 minutes, each enemy at its own pace); one ROUNDS gun clears a horde slower than VS's starting weapons"
     },
     {
       "id": "healScale",
-      "value": 1,
+      "value": 0.5,
       "unit": "ROUNDS hp per VS heal",
-      "why": "Floor Chicken (+30) and regen heal ROUNDS's health one to one"
+      "why": "VS's own heals (Floor Chicken +30, a partner's) count in ROUNDS health as VS's hits do (x contactDamageScale)"
+    },
+    {
+      "id": "roundsHealScale",
+      "value": 0.15,
+      "unit": "x ROUNDS heal",
+      "why": "every ROUNDS heal on Orange and Blue (regeneration such as Beetle's 5/s, lifesteal, healing fields, heal-on-block): ROUNDS's amount turned into VS damage (x damageScale) and then into their health like a VS hit (x contactDamageScale). ROUNDS heals are made for ROUNDS fights (55-damage bullets, a hit or two a second); at full size Beetle alone kept a guy at full health in a horde (0.3.0). Beetle now regenerates 0.75/s, about a maxed Pummarola"
     },
     {
       "id": "playerHitCooldown",
       "value": 0.4,
       "unit": "s",
-      "why": "at most one VS hit per seat this often reaches ROUNDS (about 2.5 a second when surrounded; VS paces its own hits too)"
+      "why": "VS's hits on one seat within this long reach ROUNDS as one hit with their damage summed (ROUNDS's hit sounds, flashes and on-damage cards at a sane rate). None is dropped: 0.3.0 dropped all but the first, about 85% of a horde's hits"
+    },
+    {
+      "id": "hopSeconds",
+      "value": 0.6,
+      "unit": "s",
+      "why": "a ROUNDS jump seen from above is a hop over the horde this long at jump strength 1 (times the square root of the strength: Pogo's 0.5 about 0.42 s, a full Super Jump about 1 s); no VS hit lands while in the air"
+    },
+    {
+      "id": "hopHeight",
+      "value": 2.2,
+      "unit": "ROUNDS units x body scale",
+      "why": "how high a hop of jump strength 1 lifts the guy on screen (times the strength); the legs hang below as in a ROUNDS jump"
     },
     {
       "id": "blockedHitCooldown",
@@ -133,6 +151,24 @@
       "value": 0.02,
       "unit": "VS units per VS-units/s",
       "why": "converts ROUNDS's velocity change for a 100-mass body into a VS knockback distance"
+    },
+    {
+      "id": "enemyDriftMax",
+      "value": 5,
+      "unit": "VS units/s",
+      "why": "the fastest a lasting push (a Thruster stuck to the enemy) slides an enemy; VS's camera shows about 2.3 units above and below the guy"
+    },
+    {
+      "id": "enemyDriftFade",
+      "value": 2.5,
+      "unit": "1/s",
+      "why": "how fast a slide from a lasting push dies away once the push stops"
+    },
+    {
+      "id": "enemyPullShare",
+      "value": 0.6,
+      "unit": "x distance",
+      "why": "Implode's pull moves an enemy this share of the way to the blast's centre (at most enemyPushMax), seen from above"
     },
     {
       "id": "enemyPushMax",

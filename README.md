@@ -99,7 +99,7 @@ Windows, .NET SDK 8, Python 3 with Pillow, your own VS and ROUNDS on Steam.
    and the license texts (BepInEx, UnityDoorstop, HarmonyX, MonoMod, Mono.Cecil) in `~/vsr-work/dl/licenses`.
 3. The design sheets in `sheets/` are the source of truth: `python -I tools/sheets.py gen`, then
    `python -I tools/sheets.py preflight --code` (must say clean; it checks hook targets against your decompiled games).
-4. `python -I tools/package.py 0.3.0` builds all four projects (the launcher too) and writes `dist/VampireRounds-0.3.0.zip`; Melty installs
+4. `python -I tools/package.py 0.4.0` builds all four projects (the launcher too) and writes `dist/VampireRounds-0.4.0.zip`; Melty installs
    it with the recipe in `tools/recipe.json`.
 5. Developer runs: `devtools/devinstall.py on|off` (puts the staged build into your games and takes it out again),
    `devtools/run.ps1 -Auto [-Slow] [-Hero blue] [-Cards "Explosive Bullet"]` (self-playing runs, optionally starting with ROUNDS cards;

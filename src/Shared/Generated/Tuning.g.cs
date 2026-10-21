@@ -10,12 +10,18 @@ namespace VampireRounds
         public const float damageScale = 0.3f;
         /// <summary>percentDamageFlat (VS dmg per 1.0): percent-of-health cards would one-shot bosses; a flat amount instead (scaled by damageScale downstream as in Roundhead)</summary>
         public const float percentDamageFlat = 60.0f;
-        /// <summary>contactDamageScale (ROUNDS hp per VS dmg): VS lands about five enemy touches a second on a surrounded character; one ROUNDS gun clears a horde slower than VS's starting weapons, so a touch takes half its VS damage from ROUNDS's 100 health</summary>
+        /// <summary>contactDamageScale (ROUNDS hp per VS dmg): a VS touch takes half its VS damage from Orange's and Blue's ROUNDS health (VS lands about 15 hits a second on a character in a horde of a hundred at 5 minutes, each enemy at its own pace); one ROUNDS gun clears a horde slower than VS's starting weapons</summary>
         public const float contactDamageScale = 0.5f;
-        /// <summary>healScale (ROUNDS hp per VS heal): Floor Chicken (+30) and regen heal ROUNDS's health one to one</summary>
-        public const float healScale = 1.0f;
-        /// <summary>playerHitCooldown (s): at most one VS hit per seat this often reaches ROUNDS (about 2.5 a second when surrounded; VS paces its own hits too)</summary>
+        /// <summary>healScale (ROUNDS hp per VS heal): VS's own heals (Floor Chicken +30, a partner's) count in ROUNDS health as VS's hits do (x contactDamageScale)</summary>
+        public const float healScale = 0.5f;
+        /// <summary>roundsHealScale (x ROUNDS heal): every ROUNDS heal on Orange and Blue (regeneration such as Beetle's 5/s, lifesteal, healing fields, heal-on-block): ROUNDS's amount turned into VS damage (x damageScale) and then into their health like a VS hit (x contactDamageScale). ROUNDS heals are made for ROUNDS fights (55-damage bullets, a hit or two a second); at full size Beetle alone kept a guy at full health in a horde (0.3.0). Beetle now regenerates 0.75/s, about a maxed Pummarola</summary>
+        public const float roundsHealScale = 0.15f;
+        /// <summary>playerHitCooldown (s): VS's hits on one seat within this long reach ROUNDS as one hit with their damage summed (ROUNDS's hit sounds, flashes and on-damage cards at a sane rate). None is dropped: 0.3.0 dropped all but the first, about 85% of a horde's hits</summary>
         public const float playerHitCooldown = 0.4f;
+        /// <summary>hopSeconds (s): a ROUNDS jump seen from above is a hop over the horde this long at jump strength 1 (times the square root of the strength: Pogo's 0.5 about 0.42 s, a full Super Jump about 1 s); no VS hit lands while in the air</summary>
+        public const float hopSeconds = 0.6f;
+        /// <summary>hopHeight (ROUNDS units x body scale): how high a hop of jump strength 1 lifts the guy on screen (times the strength); the legs hang below as in a ROUNDS jump</summary>
+        public const float hopHeight = 2.2f;
         /// <summary>blockedHitCooldown (s): a VS hit taken during the ROUNDS block reaches ROUNDS as a blocked hit at most this often</summary>
         public const float blockedHitCooldown = 0.1f;
         /// <summary>autoAimRange (x camera half width): auto-aim picks the nearest enemy within the screen (a little past its edge); none in range = the gun rests</summary>
@@ -46,6 +52,12 @@ namespace VampireRounds
         public const float bossStunCap = 0.75f;
         /// <summary>enemyPushScale (VS units per VS-units/s): converts ROUNDS's velocity change for a 100-mass body into a VS knockback distance</summary>
         public const float enemyPushScale = 0.02f;
+        /// <summary>enemyDriftMax (VS units/s): the fastest a lasting push (a Thruster stuck to the enemy) slides an enemy; VS's camera shows about 2.3 units above and below the guy</summary>
+        public const float enemyDriftMax = 5.0f;
+        /// <summary>enemyDriftFade (1/s): how fast a slide from a lasting push dies away once the push stops</summary>
+        public const float enemyDriftFade = 2.5f;
+        /// <summary>enemyPullShare (x distance): Implode's pull moves an enemy this share of the way to the blast's centre (at most enemyPushMax), seen from above</summary>
+        public const float enemyPullShare = 0.6f;
         /// <summary>enemyPushMax (VS units): the farthest one push moves an enemy (Saw, Thruster)</summary>
         public const float enemyPushMax = 2.5f;
         /// <summary>engineWaitSeconds (s): how long a run waits for the hidden ROUNDS before showing the stand-in Orange/Blue with a note</summary>

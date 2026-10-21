@@ -95,7 +95,7 @@
     {
       "id": "test",
       "game": "vs",
-      "does": "Melty's test run: plays the adventure by itself and marks each check",
+      "does": "Melty's test run: plays the adventure by itself and marks each check; the test player steps away from the horde, slides off walls it is stuck against, blocks when an enemy closes in (block cards get exercised) and takes a different card in each pick",
       "symbol": "TestMode.Init,TestMode.Tick,TestMode.Mark"
     },
     {

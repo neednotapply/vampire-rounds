@@ -63,14 +63,12 @@ namespace VampireRounds
             catch (Exception e) { Arena.I.LogOnce("enemy hold", e); return true; }
         }
 
-        /// <summary>A bouncing bullet is used up on a player (RayHitReflect.cs:29-32) and now on an enemy too: it no longer
-        /// bounces off bosses, Trickster gains nothing from the boss, and Target Bounce does not re-aim after the hit.</summary>
-        [HarmonyPrefix, HarmonyPatch(typeof(RayHitReflect), "DoHitEffect")]
-        public static void EnemyEndsBounce(RayHitReflect __instance, HitInfo hit)
-        {
-            if (Arena.I == null || hit == null || hit.transform == null) return;
-            if (hit.transform.GetComponent<VsTarget>() != null) __instance.reflects -= 10;
-        }
+        // Bouncing off enemies: seen from above, VS's enemies are what bullets meet (a level has no floor or platforms), so a
+        // bouncing bullet (Bouncy, Riccochet, Mayhem, Super Ball, Trickster, Target Bounce) bounces off an enemy it has just
+        // hit, after the hit's damage (ProjectileHit.RPCA_DoHit runs the hit effects after CallTakeDamage), each bounce one more
+        // enemy. ROUNDS uses a bullet up only on a Player (RayHitReflect.cs:21-24), which an enemy is not; until 0.3.0 a patch
+        // used it up on an enemy too, and these cards only bounced at the screen's edges. Target Bounce then goes for the next
+        // enemy, not the one it bounced off (ArenaTargetPatches.RetargetStart).
 
         /// <summary>A drill treats anything but a Player as a wall (RayHitDrill.cs:118-121), so it drilled through bosses and hit
         /// them every frame. A postfix, so the drill's own state changes still run exactly as for a player hit.</summary>

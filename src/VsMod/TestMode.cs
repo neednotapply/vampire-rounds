@@ -77,15 +77,32 @@ namespace VampireRounds.Vs
         {
             if (!AutoPlay.On) return;
             float t = Time.unscaledTime - openedAt;
+            if (t < 1f)
+            {
+                acceptedThisPick = false;
+                // A different card each pick (one to four steps right, or none), so test runs try many cards.
+                stepsLeft = rng.Next(0, 5);
+                nextStep = 1f;
+            }
+            // One step at a time: ROUNDS reads each change of the press count as one step.
+            if (stepsLeft > 0 && t >= nextStep && t < 3f)
+            {
+                stepsLeft--;
+                nextStep = t + 0.3f;
+                L.I(slotOff + ArenaLink.S_NavDir, 1);
+                L.I(slotOff + ArenaLink.S_NavPresses, L.I(slotOff + ArenaLink.S_NavPresses) + 1);
+            }
             if (t > 3.5f && ((int)(t * 2f)) % 4 == 0 && !acceptedThisPick)
             {
                 acceptedThisPick = true;
                 L.I(slotOff + ArenaLink.S_AcceptPresses, L.I(slotOff + ArenaLink.S_AcceptPresses) + 1);
             }
-            if (t < 1f) acceptedThisPick = false;
         }
 
         private static bool acceptedThisPick;
+        private static int stepsLeft;
+        private static float nextStep;
+        private static readonly System.Random rng = new System.Random();
         private static bool noSaveLogged;
 
         [HarmonyLib.HarmonyPatch(typeof(Il2CppVampireSurvivors.Objects.PlayerOptions), nameof(Il2CppVampireSurvivors.Objects.PlayerOptions.Save))]

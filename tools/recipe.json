@@ -84,7 +84,8 @@
       "gun-fired",
       "enemy-hit",
       "card-picked",
-      "card-logo-shown"
+      "card-logo-shown",
+      "block-used"
     ],
     "minutes": 5
   }

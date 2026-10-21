@@ -227,6 +227,50 @@ namespace VampireRounds
             if (Live && ArenaViewCam.Cam != null) EdgeCam(__instance) = ArenaViewCam.Cam;
         }
 
+        private static readonly AccessTools.FieldRef<ScreenEdgeBounce, PhotonView> EdgeView = AccessTools.FieldRefAccess<ScreenEdgeBounce, PhotonView>("view");
+        private static readonly AccessTools.FieldRef<ScreenEdgeBounce, bool> EdgeDone = AccessTools.FieldRefAccess<ScreenEdgeBounce, bool>("done");
+        private static readonly AccessTools.FieldRef<ScreenEdgeBounce, Vector2> EdgeNormal = AccessTools.FieldRefAccess<ScreenEdgeBounce, Vector2>("lastNormal");
+        private static readonly AccessTools.FieldRef<ScreenEdgeBounce, RayHitReflect> EdgeReflect = AccessTools.FieldRefAccess<ScreenEdgeBounce, RayHitReflect>("reflect");
+        private static readonly AccessTools.FieldRef<ScreenEdgeBounce, float> EdgeSince = AccessTools.FieldRefAccess<ScreenEdgeBounce, float>("sinceBounce");
+
+        /// <summary>
+        /// ScreenEdgeBounce.Update (ScreenEdgeBounce.cs:31-107) against the VS view, for an arena bullet. MapsExtended (a card
+        /// mods' dependency) transpiles that method to measure ROUNDS's own map (71 x 40 units around the origin, 1000 units
+        /// above the arena) instead of the camera: every bouncing bullet was "below the map", bounced up from its floor and
+        /// thrown up there, so its trail ran to the top of the screen and it was gone (creator, 0.3.0: "the shots seem to mostly
+        /// be hitting the ceiling, as if they aren't connected to the character"). ROUNDS's own rule runs here with the view
+        /// (a side reached: bounce off it at that point, once per side until the bullet turns back) and the transpiled method
+        /// is skipped; bullets in ROUNDS's own screen keep it.
+        /// </summary>
+        [HarmonyPrefix, HarmonyPriority(Priority.First), HarmonyPatch(typeof(ScreenEdgeBounce), "Update")]
+        public static bool EdgeBounceOnVSView(ScreenEdgeBounce __instance)
+        {
+            if (!Live || !ArenaViewCam.HasView || __instance.transform.position.y > Arena.OffsetY * 0.5f) return true;
+            try
+            {
+                var view = EdgeView(__instance);
+                if (view == null || !view.IsMine || EdgeDone(__instance)) return false;
+                Rect r = ArenaViewCam.View;
+                Vector2 pos = __instance.transform.position;
+                float vx = Mathf.Clamp01((pos.x - r.xMin) / r.width), vy = Mathf.Clamp01((pos.y - r.yMin) / r.height);
+                if (vx != 0f && vx != 1f && vy != 0f && vy != 1f) return false;
+                Vector2 n = Vector2.zero;
+                if (vx == 0f) n = Vector2.right;
+                else if (vx == 1f) n = -Vector2.right;
+                if (vy == 0f) n = Vector2.up;
+                else if (vy == 1f) n = -Vector2.up;
+                if (EdgeNormal(__instance) == n && Vector2.Angle(n, __instance.transform.forward) < 90f) return false;
+                EdgeNormal(__instance) = n;
+                Vector2 point = new Vector2(Mathf.Lerp(r.xMin, r.xMax, vx), Mathf.Lerp(r.yMin, r.yMax, vy));
+                __instance.GetComponentInParent<ChildRPC>().CallFunction("ScreenBounce", point, n, -1, -1);
+                var reflect = EdgeReflect(__instance);
+                if (reflect == null || reflect.reflects <= 0) EdgeDone(__instance) = true;
+                EdgeSince(__instance) = 0f;
+            }
+            catch (Exception e) { Fail("screen edge bounce", e); }
+            return false;
+        }
+
         /// <summary>Looper wraps at the VS view's edges (Looper.cs:17).</summary>
         [HarmonyPostfix, HarmonyPatch(typeof(Looper), "Awake")]
         public static void LoopOnVSView(Looper __instance)
@@ -328,7 +372,9 @@ namespace VampireRounds
             VsTarget t = null;
             try
             {
-                t = VsTarget.Closest((Vector2)b.transform.position + hit.normal * 0.1f, float.PositiveInfinity, true);
+                // Off an enemy (bullets bounce off VS enemies seen from above), the next enemy: never the one just hit.
+                var off = hit.transform != null ? hit.transform.GetComponent<VsTarget>() : null;
+                t = VsTarget.Closest((Vector2)b.transform.position + hit.normal * 0.1f, float.PositiveInfinity, true, off != null ? off.group : 0);
                 if (t != null && mine) b.StartCoroutine(DrawLineTo(b, t.transform));
                 if (move != null)
                 {
@@ -727,6 +773,8 @@ namespace VampireRounds
 
         // ------------------------------------------------------------------ Thruster
 
+        private static int thrusterLogged;
+
         private static VsTarget ThrusterTarget(Thruster th)
         {
             var f = ThFollow(th);
@@ -765,6 +813,7 @@ namespace VampireRounds
                 var t = ThrusterTarget(__instance);
                 if (t == null) return true;
                 if (t.Alive) t.AddForce(ThFwd(__instance) * __instance.force, ForceMode2D.Force, 0f, true);
+                if (thrusterLogged < 3 && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VAMPIREROUNDS_DEV"))) { thrusterLogged++; EnginePlugin.L.LogInfo("arena: dev thruster force " + __instance.force.ToString("0") + " on enemy " + t.group + (t.Light ? " (light)" : "")); }
             }
             catch (Exception e) { Fail("thruster", e); }
             return false;

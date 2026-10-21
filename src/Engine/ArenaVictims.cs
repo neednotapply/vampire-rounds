@@ -16,6 +16,9 @@ namespace VampireRounds
         public int group, flagsIn;                                  // flagsIn = K_Flags from VS (light, boss, no-status)
         public float slowSlow, fastSlow, aura, auraUntil, stun, silence, dot, aux;
         public int dotRgba, flags;
+        /// <summary>The enemy's health as VS last sent it, in ROUNDS damage (VS hp / damageScale), less the hits sent since:
+        /// what a hit can really take from it (<see cref="VsTarget.Hit"/>); NaN until VS sent one.</summary>
+        public float hpLeft = float.NaN;
         public Vector2 dv; public float flying; public bool cont;   // force this frame, VS units/s
         public float fxSlow, fxStun, fxSilence; public bool fxFast; // coalesced events this frame
         public readonly Dictionary<ProjectileHit, float> held = new Dictionary<ProjectileHit, float>();
@@ -67,6 +70,7 @@ namespace VampireRounds
             fxSlow = fxStun = fxSilence = 0f; fxFast = false;
             held.Clear();
             immune.Clear();
+            hpLeft = float.NaN;
             alive = false;
         }
     }
@@ -131,11 +135,15 @@ namespace VampireRounds
         {
             if (Arena.I == null || damage.sqrMagnitude <= 0f) return;
             Arena.I.TargetHit(id, damage.magnitude, pos, by, kind, c);
-            if (by != null && Arena.I.SlotOf(by) >= 0)
-            {
-                try { by.data.stats.DealtDamage(damage, false, null); }
-                catch (System.Exception e) { Arena.I.LogOnce("DealtDamage", e); }
-            }
+            if (by == null || Arena.I.SlotOf(by) < 0) return;
+            // The attacker's rewards count what the hit took: no more than the enemy had left. ROUNDS pays lifesteal on the
+            // whole hit (HealthHandler.cs:235-238), made for duels; a big gun's overkill on a bat healed a guy to full (0.3.0).
+            var st = St;
+            float dealt = damage.magnitude;
+            if (!float.IsNaN(st.hpLeft)) { dealt = Mathf.Min(dealt, Mathf.Max(0f, st.hpLeft)); st.hpLeft -= dealt; }
+            if (dealt <= 0f) return;
+            try { by.data.stats.DealtDamage(damage.normalized * dealt, false, null); }
+            catch (System.Exception e) { Arena.I.LogOnce("DealtDamage", e); }
         }
 
         /// <summary>What a bullet carries besides damage (ProjectileHit.RPCA_DoHit only gives these to a HealthHandler).</summary>
@@ -263,14 +271,15 @@ namespace VampireRounds
             return true;
         }
 
-        /// <summary>The closest live enemy hit area within range (measured to its bounds), optionally in sight.</summary>
-        public static VsTarget Closest(Vector2 from, float range, bool sight)
+        /// <summary>The closest live enemy hit area within range (measured to its bounds), optionally in sight, leaving out
+        /// one enemy group (0: none).</summary>
+        public static VsTarget Closest(Vector2 from, float range, bool sight, int skipGroup = 0)
         {
             VsTarget best = null;
             float bd = range;
             foreach (var t in All)
             {
-                if (t == null || !t.Alive) continue;
+                if (t == null || !t.Alive || (skipGroup != 0 && t.group == skipGroup)) continue;
                 Vector2 p = t.Col.bounds.ClosestPoint(from);
                 float d = Vector2.Distance(from, p);
                 if (d < bd && (!sight || CanSee(from, p) || CanSee(from, t.Centre))) { bd = d; best = t; }

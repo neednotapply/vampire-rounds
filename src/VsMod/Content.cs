@@ -499,6 +499,40 @@ namespace VampireRounds.Vs
             if (AdventureInData) result = true;
         }
 
+        [HarmonyPatch(typeof(SelectAdventuresPage), "Populate")]
+        public static class AdventureListPatch
+        {
+            public static void Postfix(SelectAdventuresPage __instance) => EnsureListed(__instance);
+        }
+
+        /// <summary>
+        /// VS lists the base game's adventures only once the save has found the Atlas relic (Populate asks
+        /// HasCollectedItem(RELIC_ATLAS) before each of them, and ours takes one of their slots): a save without it listed
+        /// nothing, Boot found no card to open and a player was left on VS's main menu (Melty player report, 0.3.0). When
+        /// Populate left ours out it is added as Populate adds one (the page's card prefab, SetData, its list, first in line)
+        /// and the page's navigation is made again; VS's own adventures stay as the save has them.
+        /// </summary>
+        public static void EnsureListed(SelectAdventuresPage page)
+        {
+            if (!AdventureInData || page == null) return;
+            try
+            {
+                var spawned = page._spawned;
+                if (spawned == null) return;
+                foreach (var it in spawned) if (it != null && it.GetAdventureType() == Adventure) return;
+                AdventureData data;
+                if (page.DataManager == null || !page.DataManager.AllAdventures.TryGetValue(Adventure, out data) || data == null) return;
+                var go = UnityEngine.Object.Instantiate(page._AdventureItemPrefab, page._AdventureItemContainer);
+                var item = go.GetComponent<AdventureItemUI>();
+                item.SetData(page, Adventure, data);
+                go.transform.SetAsFirstSibling();
+                spawned.Insert(0, item);
+                page.GenerateNavigation();
+                Mod.Log("content: the Vampire Rounds adventure added to VS's adventure list (this save has not found the Atlas)");
+            }
+            catch (Exception e) { Mod.Once("content: adventure list", e); }
+        }
+
         [HarmonyPatch(typeof(AdventureItemUI), nameof(AdventureItemUI.SetData))]
         public static class AdventureCardPatch
         {

@@ -16,7 +16,7 @@ namespace VampireRounds
     /// Runs inside the hidden ROUNDS that Vampire Rounds starts next to Vampire Survivors: waits until ROUNDS (and any card
     /// mods) have loaded every card, then runs the arena (Orange and Blue, their guns and cards) for VS over shared memory.
     /// </summary>
-    [BepInPlugin("gg.melty.vampirerounds.engine", "VampireRounds.Engine", "0.3.0")]
+    [BepInPlugin("gg.melty.vampirerounds.engine", "VampireRounds.Engine", "0.4.0")]
     public class EnginePlugin : BaseUnityPlugin
     {
         public static EnginePlugin I;

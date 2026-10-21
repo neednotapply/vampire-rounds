@@ -487,6 +487,32 @@ namespace VampireRounds
         }
     }
 
+    /// <summary>
+    /// ROUNDS's heals on Orange and Blue in VS's measure (sheets/hooks.json r_heal_scale): every HealthHandler.Heal on an arena
+    /// player (regeneration such as Beetle's, lifesteal, healing fields, heal on block) is scaled by tuning roundsHealScale.
+    /// VS's own heals come already scaled (Arena.VsHeal). ROUNDS made its heals for its own fights; against VS's damage they
+    /// kept a guy at full health in a horde (0.3.0).
+    /// </summary>
+    public static class HealScale
+    {
+        [HarmonyPrefix, HarmonyPatch(typeof(HealthHandler), "Heal")]
+        public static void Scale(HealthHandler __instance, ref float healAmount)
+        {
+            var a = Arena.I;
+            if (a == null || Arena.VsHeal || healAmount <= 0f || !EnginePlugin.Hidden || __instance == null) return;
+            var p = __instance.GetComponent<Player>();
+            if (p != null && a.SlotOf(p) >= 0)
+            {
+                healAmount *= Tuning.roundsHealScale;
+                if (Dev && healAmount > 3f && logged++ < 20)
+                    EnginePlugin.L.LogInfo("arena: dev heal " + healAmount.ToString("0.0") + " on seat " + a.SlotOf(p) + " from " + new System.Diagnostics.StackTrace(1, false).ToString().Replace("\r\n", " <").Replace("\n", " <"));
+            }
+        }
+
+        private static readonly bool Dev = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VAMPIREROUNDS_DEV"));
+        private static int logged;
+    }
+
     /// <summary>Every card ROUNDS shows in the hidden engine (the pick, the logos) in its own colours (CardLook).</summary>
     public static class CardLookPatches
     {

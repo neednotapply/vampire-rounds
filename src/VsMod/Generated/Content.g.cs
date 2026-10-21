@@ -53,6 +53,6 @@ namespace VampireRounds.Vs
             new[] { "characterLang/{type:blue}description", "ROUNDS's blue player with ROUNDS's gun and block. Every level-up is a ROUNDS card pick." },
         };
         /// <summary>Melty test checks (sheets/checks.json), in order.</summary>
-        public static readonly string[] Checks = { "engine-ready", "adventure-listed", "run-started", "rounds-drawn", "gun-fired", "enemy-hit", "card-picked", "card-logo-shown" };
+        public static readonly string[] Checks = { "engine-ready", "adventure-listed", "run-started", "rounds-drawn", "gun-fired", "enemy-hit", "card-picked", "card-logo-shown", "block-used" };
     }
 }

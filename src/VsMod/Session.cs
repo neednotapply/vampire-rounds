@@ -57,7 +57,10 @@ namespace VampireRounds.Vs
             Enemies.WriteTargets(L);
             Enemies.ApplyHits(L);
             Enemies.ApplyFx(L);
+            Enemies.Drift(paused);
             MirrorHealth(L);
+            for (int s = 0; s < SeatChar.Length; s++)
+                if (SeatChar[s] != null && Link.ArenaUp && L.I(ArenaLink.RSlot(s) + ArenaLink.Q_Blocks) > 0) TestMode.Mark("block-used");
             Picks.Tick(L);
             if (Link.ArenaUp && L.I(ArenaLink.ResultOff + ArenaLink.R_Run) == run) TestMode.Mark("engine-ready");
         }
@@ -167,7 +170,10 @@ namespace VampireRounds.Vs
                 // to ROUNDS's health instead (h_player_heal), then the bar shows ROUNDS's again.
                 float now = c.CurrentHp;
                 if (mirroredLife[s] == life[s] && now > mirrored[s] + Tuning.hitNoise)
+                {
                     Link.L.PostEvent(ArenaLink.EvHeal, s, now - mirrored[s], 0f, 0f, 0f, life[s]);
+                    if (DevConsole.On) Mod.Log("dev: VS healed " + (s == 0 ? "Orange" : "Blue") + " by " + (now - mirrored[s]).ToString("0.0") + " (bar " + mirrored[s].ToString("0.0") + " -> " + now.ToString("0.0") + " of " + vsMax.ToString("0") + ")");
+                }
                 c.CurrentHp = Mathf.Clamp(vsMax * hp / max, 0.01f, vsMax);
                 mirrored[s] = c.CurrentHp;
                 mirroredLife[s] = life[s];

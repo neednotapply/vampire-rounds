@@ -1,7 +1,7 @@
 using System;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(VampireRounds.Vs.Mod), "Vampire Rounds", "0.3.0", "Vampire Rounds contributors")]
+[assembly: MelonInfo(typeof(VampireRounds.Vs.Mod), "Vampire Rounds", "0.4.0", "Vampire Rounds contributors")]
 [assembly: MelonGame("poncle", "Vampire Survivors")]
 
 namespace VampireRounds.Vs

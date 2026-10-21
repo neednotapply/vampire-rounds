@@ -83,6 +83,14 @@
       "symbol": "Content.AdventureCard"
     },
     {
+      "id": "h_adventure_list",
+      "game": "vs",
+      "target": "SelectAdventuresPage.Populate",
+      "kind": "postfix",
+      "does": "the Vampire Rounds adventure is on the adventure list even for a save that has not found the Atlas relic (VS lists the base game's adventures only with it): its card is made as Populate makes one and the navigation is rebuilt",
+      "symbol": "Content.EnsureListed"
+    },
+    {
       "id": "h_both_heroes",
       "game": "vs",
       "target": "AdventureManager.InitAdventure",
@@ -315,14 +323,6 @@
       "symbol": "ArenaEffectPatches.HoldEnemy"
     },
     {
-      "id": "r_bounce_ends",
-      "game": "rounds",
-      "target": "RayHitReflect.DoHitEffect",
-      "kind": "prefix",
-      "does": "a bouncing bullet ends at a VS enemy as it does at a ROUNDS player (no bouncing off bosses, no Trickster gain from the boss)",
-      "symbol": "ArenaEffectPatches.EnemyEndsBounce"
-    },
-    {
       "id": "r_drill_ends",
       "game": "rounds",
       "target": "RayHitDrill.DoHitEffect",
@@ -427,6 +427,14 @@
       "symbol": "ArenaTargetPatches.EdgeOnVSView"
     },
     {
+      "id": "r_view_edge_bounce_update",
+      "game": "rounds",
+      "target": "ScreenEdgeBounce.Update",
+      "kind": "prefix",
+      "does": "an arena bullet bounces at the VS view's edges with ROUNDS's own rule, and the method (which MapsExtended transpiles to measure ROUNDS's map 1000 units above the arena, throwing every bouncing bullet up there) is skipped; first priority",
+      "symbol": "ArenaTargetPatches.EdgeBounceOnVSView"
+    },
+    {
       "id": "r_view_looper",
       "game": "rounds",
       "target": "Looper.Awake",
@@ -455,7 +463,7 @@
       "game": "rounds",
       "target": "BounceEffectRetarget.DoBounce",
       "kind": "prefix",
-      "does": "Target Bounce re-aims at the closest visible VS enemy after a bounce (0.1 s pause, aim line)",
+      "does": "Target Bounce re-aims at the closest visible VS enemy after a bounce (0.1 s pause, aim line); after bouncing off an enemy, the next enemy, never the one just hit",
       "symbol": "ArenaTargetPatches.RetargetEnemy"
     },
     {
@@ -625,6 +633,30 @@
       "kind": "postfix",
       "does": "Orange and Blue start with tuning startHealth instead of ROUNDS's 100 (health cards multiply it as in ROUNDS)",
       "symbol": "StartHealth.Reset"
+    },
+    {
+      "id": "r_heal_scale",
+      "game": "rounds",
+      "target": "HealthHandler.Heal",
+      "kind": "prefix",
+      "does": "every ROUNDS heal on Orange and Blue (regeneration such as Beetle's, lifesteal, healing fields, heal on block) times tuning roundsHealScale; VS's own heals (EvHeal) arrive already scaled by healScale",
+      "symbol": "HealScale.Scale"
+    },
+    {
+      "id": "r_hop",
+      "game": "rounds",
+      "target": "PlayerJump.Jump",
+      "kind": "postfix",
+      "does": "a ROUNDS jump of Orange or Blue (Pogo, Super Jump, jump cards) is a hop seen from above: the guy rises over his spot and lands (tuning hopSeconds, hopHeight), and no VS hit lands while he is in the air",
+      "symbol": "HopPatch.Hopped"
+    },
+    {
+      "id": "r_axis_bullets",
+      "game": "rounds",
+      "target": "CR's ShootingStarMono, CometMono, MeteorMono, CloudMono and CareenMono Update (runtime patch)",
+      "kind": "prefix",
+      "does": "card-mod bullets that speed up or slow down along one world axis (made for ROUNDS's rising and falling bullets) change speed along their own path every 0.1 s instead (Shooting Star x1.025, Comet and Meteor x1.1, Cloud x0.875), so from above they no longer bend north or south; Careen (stops a falling bullet from falling) does nothing where nothing falls. Prefix and postfix; skipped without CR",
+      "symbol": "AxisBullets.Before, AxisBullets.After"
     },
     {
       "id": "r_card_look",

@@ -56,6 +56,8 @@ namespace VampireRounds
         public bool Paused => paused;
         /// <summary>True while a VS hit is being applied to a ROUNDS player (it has no ROUNDS attacker).</summary>
         public static bool VsHit;
+        /// <summary>True while a VS heal (Floor Chicken, a partner's) is being applied: already in VS's measure (HealScale).</summary>
+        public static bool VsHeal;
 
         private static readonly AccessTools.FieldRef<PlayerVelocity, Vector2> VelRef = AccessTools.FieldRefAccess<PlayerVelocity, Vector2>("velocity");
         private static readonly AccessTools.FieldRef<PlayerVelocity, bool> SimRef = AccessTools.FieldRefAccess<PlayerVelocity, bool>("simulated");
@@ -101,6 +103,7 @@ namespace VampireRounds
             }
             // Patches on card-mod classes (found by name at runtime, so the engine needs no mod at build time).
             try { ArenaModHooks.Apply(harmony); } catch (Exception e) { EnginePlugin.L.LogWarning("arena: mod hooks: " + e.Message); }
+            try { AxisBullets.Apply(harmony); } catch (Exception e) { EnginePlugin.L.LogWarning("arena: axis bullets: " + e.Message); }
             EnginePlugin.L.LogInfo("arena: shared memory " + ArenaLink.LastOpenNote);
         }
 
@@ -167,6 +170,7 @@ namespace VampireRounds
                 Step("targets", SyncTargets);
                 Step("walls", PlaceWalls);
                 Step("events", ReadEvents);
+                Step("hits", LandWaitingHits);
                 Step("lives", CheckLives);
                 Step("status", () => { float dt = TimeHandler.deltaTime; foreach (var st in status.Values) st.Tick(dt); });
                 Step("park", ParkOrPlay);
@@ -175,6 +179,7 @@ namespace VampireRounds
                 Step("portraits", () => Portraits.Tick(players));
                 Step("decks", () => CardIcons.Tick(players, link, this));
                 Step("log", LogState);
+                if (DevShots) Step("dev bullets", DevBullets);
             }
             Step("result", WriteResult);
             Step("sound", () => Sound(vsAlive));
@@ -219,6 +224,7 @@ namespace VampireRounds
             bool first = runSeen < 0;
             runSeen = run;
             ClearTargets();
+            for (int i = 0; i < Seats; i++) { pendingHit[i] = 0f; hopTime[i] = 0f; }
             for (int i = 0; i < Seats; i++)
                 if (players[i] != null && !creating[i] && (!first || players[i].data.currentCards.Count > 0))
                 {
@@ -238,9 +244,22 @@ namespace VampireRounds
         {
             string names = Environment.GetEnvironmentVariable("VAMPIREROUNDS_DEV_CARDS");
             if (string.IsNullOrEmpty(names) || CardChoice.instance == null) return;
+            // "random:8" adds eight cards drawn from every card ROUNDS has (mods' included), different each run.
+            var wanted = new List<string>();
             foreach (string raw in names.Split(','))
             {
-                string want = raw.Trim();
+                string w = raw.Trim();
+                int n;
+                if (w.StartsWith("random:", StringComparison.OrdinalIgnoreCase) && int.TryParse(w.Substring(7), out n))
+                {
+                    var pool = CardChoice.instance.cards.Where(c => c != null && !wanted.Contains(c.cardName)).OrderBy(c => UnityEngine.Random.value).Take(n);
+                    foreach (var c in pool) wanted.Add(c.cardName);
+                }
+                else if (w.Length > 0) wanted.Add(w);
+            }
+            EnginePlugin.L.LogInfo("arena: dev cards this run: " + string.Join(", ", wanted.ToArray()));
+            foreach (string want in wanted)
+            {
                 var card = CardChoice.instance.cards.FirstOrDefault(c => c != null && string.Equals(c.cardName, want, StringComparison.OrdinalIgnoreCase));
                 if (card == null) { EnginePlugin.L.LogWarning("arena: dev card '" + want + "' not found"); continue; }
                 for (int i = 0; i < Seats; i++)
@@ -412,7 +431,8 @@ namespace VampireRounds
         /// Every seat VS plays is held where its VS character stands, before ROUNDS's own scripts run in Update and
         /// FixedUpdate (this component runs first). PlayerVelocity.isKinematic zeroes the velocity each step and skips
         /// ROUNDS's gravity and movement, so jumps, recoil, knockback and block dashes move nothing: VS moves the player.
-        /// Its own floor follows under its feet, so ROUNDS's legs plant and step as it walks.
+        /// Its own floor follows under its feet, so ROUNDS's legs plant and step as it walks. A ROUNDS jump is a hop seen from
+        /// above (<see cref="StartHop"/>): the body rises over its spot and comes down, its legs hanging off the floor.
         /// </summary>
         private void HoldPlayers()
         {
@@ -424,12 +444,54 @@ namespace VampireRounds
                 KinematicRef(p.data.playerVel) = true;
                 VelRef(p.data.playerVel) = Vector2.zero;
                 Vector2 r = ToRounds(link.F(s + ArenaLink.S_PosX), link.F(s + ArenaLink.S_PosY));
-                p.transform.position = new Vector3(r.x, r.y, 0f);
-                p.data.sinceGrounded = 0f;
-                p.data.isGrounded = true;
+                float up = HopLift(i);
+                p.transform.position = new Vector3(r.x, r.y + up, 0f);
+                if (up > 0f)
+                {
+                    p.data.sinceGrounded = Time.time - hopStart[i];
+                    p.data.isGrounded = false;
+                }
+                else
+                {
+                    p.data.sinceGrounded = 0f;
+                    p.data.isGrounded = true;
+                }
                 if (floors[i] != null)
                     floors[i].transform.position = new Vector3(r.x, r.y - Tuning.legGroundDrop * Mathf.Abs(p.transform.localScale.x) - 0.5f, 0f);
             }
+        }
+
+        // ------------------------------------------------------------------ hops (ROUNDS's jumps seen from above)
+
+        private readonly float[] hopStart = new float[Seats], hopTime = new float[Seats], hopHeight = new float[Seats];
+        private readonly int[] hops = new int[Seats], dmgDodged = new int[Seats];
+
+        /// <summary>
+        /// A ROUNDS jump of an arena player (PlayerJump.Jump: Pogo every 4 s, Super Jump, a jump card's own jump) becomes a hop:
+        /// seen from above nothing goes up, so the guy rises over his spot and lands again, and while he is in the air VS's
+        /// enemies pass under him (their hits do not land, <see cref="Hopping"/>). multiplier is ROUNDS's jump strength
+        /// (Pogo 0.5, a charged Super Jump up to 3) times the jump stat cards change; a stronger jump goes higher and longer.
+        /// </summary>
+        public void StartHop(Player p, float multiplier)
+        {
+            int i = SlotOf(p);
+            if (i < 0 || mode != 1 || paused) return;
+            float m = Mathf.Clamp(multiplier * Mathf.Max(0.1f, p.data.stats.jump), 0.3f, 4f);
+            hopStart[i] = Time.time;
+            hopTime[i] = Tuning.hopSeconds * Mathf.Sqrt(m);
+            hopHeight[i] = Tuning.hopHeight * m * Mathf.Abs(p.transform.localScale.x);
+            hops[i]++;
+        }
+
+        /// <summary>True while the seat is in the air from a hop.</summary>
+        public bool Hopping(int i) => i >= 0 && i < Seats && hopTime[i] > 0f && Time.time - hopStart[i] < hopTime[i];
+
+        /// <summary>How high the seat is in its hop right now (a parabola over the hop's time), 0 on the ground.</summary>
+        private float HopLift(int i)
+        {
+            if (!Hopping(i)) return 0f;
+            float u = (Time.time - hopStart[i]) / hopTime[i];
+            return hopHeight[i] * 4f * u * (1f - u);
         }
 
         // ------------------------------------------------------------------ input (GeneralInput prefix)
@@ -475,6 +537,74 @@ namespace VampireRounds
         }
 
         private static readonly bool DevShots = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VAMPIREROUNDS_DEV"));
+
+        private float nextPickDiag;
+        private float nextBulletDiag;
+
+        /// <summary>Developer runs: the bullets in flight every 2 s (where they go and what rides on them).</summary>
+        private void DevBullets()
+        {
+            if (Time.unscaledTime < nextBulletDiag || mode != 1) return;
+            nextBulletDiag = Time.unscaledTime + 2f;
+            var sb = new System.Text.StringBuilder("arena: dev bullets");
+            int n = 0;
+            foreach (var m in FindObjectsOfType<MoveTransform>())
+            {
+                if (m == null || m.transform.position.y > OffsetY * 0.5f) continue;
+                if (n++ >= 8) break;
+                Vector2 v = m.velocity;
+                sb.Append(" | " + m.transform.root.name + " at " + ToVs(m.transform.position).ToString("0.0") + " v " + v.normalized.ToString("0.00") + " x" + v.magnitude.ToString("0") + " grav " + m.gravity.ToString("0.0") + " sim " + m.simulateGravity);
+                var names = new HashSet<string>();
+                foreach (var c in m.transform.root.GetComponentsInChildren<MonoBehaviour>(true)) if (c != null) names.Add(c.GetType().Name);
+                names.ExceptWith(new[] { "MoveTransform", "ProjectileHit", "RayCastTrail", "PhotonView", "SyncProjectile", "SpawnedAttack", "ProjectileInit", "RemoveAfterSeconds", "ProjectileCollision", "DynamicParticleSet", "ChildRPC", "TrailRenderer", "ProjectileHitEmpty", "SetTeamColor", "CanvasScaler", "GraphicRaycaster" });
+                sb.Append(" {" + string.Join(",", names.ToArray()) + "}");
+            }
+            if (n > 0) EnginePlugin.L.LogInfo(sb.ToString());
+            var lb = new System.Text.StringBuilder("arena: dev lines");
+            int ln = 0;
+            foreach (var lr in FindObjectsOfType<LineRenderer>())
+            {
+                if (lr == null || !lr.enabled || !lr.gameObject.activeInHierarchy || lr.positionCount < 2) continue;
+                Vector3 a = lr.GetPosition(0), b = lr.GetPosition(lr.positionCount - 1);
+                if (!lr.useWorldSpace) { a = lr.transform.TransformPoint(a); b = lr.transform.TransformPoint(b); }
+                if (a.y > OffsetY * 0.5f && b.y > OffsetY * 0.5f) continue;
+                if (ln++ >= 8) break;
+                lb.Append(" | " + lr.transform.root.name + "/" + lr.name + " " + ToVs(a).ToString("0.0") + " -> " + ToVs(b).ToString("0.0") + " n" + lr.positionCount + " w" + lr.widthMultiplier.ToString("0.00") + " " + ColorUtility.ToHtmlStringRGBA(lr.startColor));
+            }
+            foreach (var tr in FindObjectsOfType<TrailRenderer>())
+            {
+                if (tr == null || !tr.enabled || !tr.gameObject.activeInHierarchy || tr.positionCount < 2) continue;
+                Vector3 a = tr.GetPosition(0), b = tr.GetPosition(tr.positionCount - 1);
+                if (a.y > OffsetY * 0.5f && b.y > OffsetY * 0.5f) continue;
+                if (ln++ >= 12) break;
+                lb.Append(" | trail " + tr.transform.root.name + "/" + tr.name + " " + ToVs(a).ToString("0.0") + " -> " + ToVs(b).ToString("0.0") + " n" + tr.positionCount + " t" + tr.time.ToString("0.00") + " w" + tr.widthMultiplier.ToString("0.00"));
+            }
+            if (ln > 0) EnginePlugin.L.LogInfo(lb.ToString());
+        }
+
+        /// <summary>Developer runs: how each card of a pick is drawn (its canvas turn, front and back, curve animations).</summary>
+        private static void DiagPick(List<GameObject> cards)
+        {
+            if (cards == null) return;
+            var sb = new System.Text.StringBuilder("arena: dev pick");
+            for (int i = 0; i < cards.Count; i++)
+            {
+                var c = cards[i];
+                if (c == null) { sb.Append(" | " + i + " gone"); continue; }
+                var vis = c.GetComponentInChildren<CardVisuals>();
+                var canvas = vis != null ? vis.transform.Find("Canvas") : null;
+                var front = canvas != null ? canvas.Find("Front") : null;
+                var back = canvas != null ? canvas.Find("Back") : null;
+                sb.Append(" | " + i + " " + (c.GetComponent<CardInfo>() != null ? c.GetComponent<CardInfo>().cardName : c.name) + (vis != null && vis.isSelected ? " [sel]" : ""));
+                if (canvas != null) sb.Append(" canvas " + canvas.localEulerAngles.ToString("0") + " world " + canvas.eulerAngles.ToString("0") + " scale " + canvas.lossyScale.x.ToString("0.00"));
+                if (front != null) { var g = front.GetComponent<CanvasGroup>(); sb.Append(" front " + (front.gameObject.activeSelf ? "on" : "off") + (g != null ? " a" + g.alpha.ToString("0.00") : "")); }
+                if (back != null) { var g = back.GetComponent<CanvasGroup>(); sb.Append(" back " + (back.gameObject.activeSelf ? "on" : "off") + (g != null ? " a" + g.alpha.ToString("0.00") : "") + " rot " + back.localEulerAngles.ToString("0")); }
+                foreach (var ca in c.GetComponentsInChildren<CurveAnimation>(true))
+                    sb.Append(" {" + ca.name + " " + ca.currentState + (ca.useTimeScale ? "" : " unscaled") + " rot " + ca.transform.localEulerAngles.ToString("0") + "}");
+            }
+            sb.Append(" | timeScale " + Time.timeScale + " dt " + TimeHandler.deltaTime.ToString("0.000"));
+            EnginePlugin.L.LogInfo(sb.ToString());
+        }
 
         /// <summary>Developer runs: where a shot leaves from, against the player and the camera (VS units).</summary>
         private void LogShot(Player p, int slot)
@@ -565,6 +695,7 @@ namespace VampireRounds
                 st.alive = true;
                 st.seen = syncs;
                 st.flagsIn = link.I(e + ArenaLink.T_Flags);
+                st.hpLeft = Mathf.Max(0f, link.F(e + ArenaLink.T_Hp)) / Tuning.damageScale;
                 if ((st.flagsIn & ArenaLink.TfNoStatus) != 0) st.ClearTransient();
             }
             if (mirrors.Count != seenIds.Count)
@@ -740,7 +871,11 @@ namespace VampireRounds
         // ------------------------------------------------------------------ events from VS
 
         private readonly float[] lastHit = new float[Seats], lastBlocked = new float[Seats], dmgTaken = new float[Seats];
-        private readonly int[] dmgIn = new int[Seats], dmgBlocked = new int[Seats], dmgSkipped = new int[Seats];
+        private readonly int[] dmgIn = new int[Seats], dmgBlocked = new int[Seats], dmgMerged = new int[Seats];
+        /// <summary>VS damage that arrived within playerHitCooldown of the last hit ROUNDS took, per seat, and its direction:
+        /// it lands as one hit when the cooldown is over (<see cref="LandHits"/>).</summary>
+        private readonly float[] pendingHit = new float[Seats];
+        private readonly Vector2[] pendingDir = new Vector2[Seats];
         /// <summary>Orange's and Blue's own blasts that reached them and were kept off (ArenaEffectPatches.Blast), per seat.</summary>
         public readonly int[] ownBlasts = new int[Seats];
 
@@ -764,28 +899,33 @@ namespace VampireRounds
                         {
                             dmgIn[slot]++;
                             if (p.data.dead) break;
+                            // In the air over the horde (a hop): the enemies pass under him.
+                            if (Hopping(slot)) { dmgDodged[slot]++; break; }
                             // ROUNDS's block (its window after a block) stops VS hits too, with ROUNDS's own blocked-hit path.
-                            if (p.data.block.sinceBlock < 0.3f || p.data.block.IsBlocking())
+                            if (Blocking(p))
                             {
                                 dmgBlocked[slot]++;
+                                pendingHit[slot] = 0f;
                                 if (Time.unscaledTime - lastBlocked[slot] < Tuning.blockedHitCooldown) break;
                                 lastBlocked[slot] = Time.unscaledTime;
                                 p.data.healthHandler.CallTakeDamage(new Vector2(b, c).normalized * Mathf.Max(1f, a), p.transform.position);
                                 break;
                             }
-                            if (Time.unscaledTime - lastHit[slot] < Tuning.playerHitCooldown) { dmgSkipped[slot]++; break; }
-                            lastHit[slot] = Time.unscaledTime;
-                            dmgTaken[slot] += a * Tuning.contactDamageScale;
-                            VsHit = true;
+                            // VS paces its own hits (each enemy at its own rate), so every one counts: hits within
+                            // playerHitCooldown of the last one ROUNDS took wait and land together (LandHits). 0.3.0 dropped
+                            // them, about 85% of a horde's hits, and a guy stood in a horde at full health.
+                            pendingHit[slot] += a;
                             Vector2 dir = new Vector2(b, c);
-                            if (dir.sqrMagnitude < 0.01f) dir = Vector2.up;
-                            p.data.healthHandler.CallTakeDamage(dir.normalized * a * Tuning.contactDamageScale, p.transform.position);
-                            VsHit = false;
-
+                            if (dir.sqrMagnitude >= 0.01f) pendingDir[slot] = dir;
+                            if (Time.unscaledTime - lastHit[slot] < Tuning.playerHitCooldown) { dmgMerged[slot]++; break; }
+                            LandHits(slot);
                             break;
                         }
                         case ArenaLink.EvHeal:
-                            if (!p.data.dead && a > 0f) p.data.healthHandler.Heal(a * Tuning.healScale);
+                            if (p.data.dead || a <= 0f) break;
+                            VsHeal = true;
+                            try { p.data.healthHandler.Heal(a * Tuning.healScale); }
+                            finally { VsHeal = false; }
                             break;
                         case ArenaLink.EvKill:
                             if (!p.data.dead) p.data.healthHandler.DoDamage(Vector2.up * (p.data.health + 1000f), p.transform.position, Color.white, null, null, false, true, true);
@@ -796,6 +936,41 @@ namespace VampireRounds
                     }
                 }
                 catch (Exception ex) { VsHit = false; EnginePlugin.L.LogWarning("arena event " + type + ": " + ex.Message); }
+            }
+        }
+
+        /// <summary>ROUNDS's block, or its window just after one (Block.sinceBlock), stops VS hits.</summary>
+        private static bool Blocking(Player p) => p.data.block.sinceBlock < 0.3f || p.data.block.IsBlocking();
+
+        /// <summary>The VS damage waiting for a seat lands in ROUNDS as one hit (ROUNDS's own damage path: its flash, sound,
+        /// on-damage cards), scaled by tuning contactDamageScale.</summary>
+        private void LandHits(int slot)
+        {
+            var p = players[slot];
+            float a = pendingHit[slot];
+            pendingHit[slot] = 0f;
+            if (p == null || a <= 0f || p.data.dead) return;
+            lastHit[slot] = Time.unscaledTime;
+            dmgTaken[slot] += a * Tuning.contactDamageScale;
+            Vector2 dir = pendingDir[slot];
+            if (dir.sqrMagnitude < 0.01f) dir = Vector2.up;
+            VsHit = true;
+            try { p.data.healthHandler.CallTakeDamage(dir.normalized * a * Tuning.contactDamageScale, p.transform.position); }
+            finally { VsHit = false; }
+        }
+
+        /// <summary>Waiting VS damage lands once playerHitCooldown is over, even when no new hit comes; a block that went up in
+        /// the meantime stops it, and a pause keeps it for later.</summary>
+        private void LandWaitingHits()
+        {
+            if (paused) return;
+            for (int i = 0; i < Seats; i++)
+            {
+                if (pendingHit[i] <= 0f) continue;
+                var p = players[i];
+                if (p == null || creating[i] || p.data.dead) { pendingHit[i] = 0f; continue; }
+                if (Blocking(p)) { pendingHit[i] = 0f; dmgBlocked[i]++; continue; }
+                if (Time.unscaledTime - lastHit[i] >= Tuning.playerHitCooldown) LandHits(i);
             }
         }
 
@@ -813,6 +988,7 @@ namespace VampireRounds
                 if (serial == life[i]) continue;
                 try { p.data.healthHandler.Revive(true); }
                 catch (Exception e) { EnginePlugin.L.LogWarning("arena revive: " + e.Message); }
+                pendingHit[i] = 0f;
                 life[i] = serial;
                 EnginePlugin.L.LogInfo("arena: seat " + i + " life " + serial + " (full health " + p.data.maxHealth.ToString("0") + ")");
             }
@@ -928,6 +1104,7 @@ namespace VampireRounds
                         else if (Time.unscaledTime - stuckSince > 8f) { EnginePlugin.L.LogError("arena: ROUNDS pick stalled; ending it"); AbortRoundsPick(cc); break; }
                     }
                     else stuckSince = -1f;
+                    if (DevShots && Time.unscaledTime > nextPickDiag) { nextPickDiag = Time.unscaledTime + 1f; DiagPick(spawned); }
                     yield return it.Current;
                 }
                 yield return new WaitForSecondsRealtime(0.1f);
@@ -1048,7 +1225,7 @@ namespace VampireRounds
                 nextLog = Time.unscaledTime + 5f;
                 var sb = new System.Text.StringBuilder("arena: enemies " + mirrors.Count + ", statuses " + status.Count + ", hits " + hitsPosted + ", scale " + scale.ToString("0.000"));
                 for (int i = 0; i < Seats; i++)
-                    if (players[i] != null && Present(i)) sb.Append(" | seat " + i + " at " + players[i].transform.position.ToString("0.0") + " hp " + players[i].data.health.ToString("0") + "/" + players[i].data.maxHealth.ToString("0") + " cards " + players[i].data.currentCards.Count + " shots " + shots[i] + " vs hits " + dmgIn[i] + " (taken " + dmgTaken[i].ToString("0") + ", blocked " + dmgBlocked[i] + ", too soon " + dmgSkipped[i] + ", own blasts kept off " + ownBlasts[i] + ")"
+                    if (players[i] != null && Present(i)) sb.Append(" | seat " + i + " at " + players[i].transform.position.ToString("0.0") + " hp " + players[i].data.health.ToString("0") + "/" + players[i].data.maxHealth.ToString("0") + " cards " + players[i].data.currentCards.Count + " shots " + shots[i] + " vs hits " + dmgIn[i] + " (taken " + dmgTaken[i].ToString("0") + ", blocked " + dmgBlocked[i] + ", merged " + dmgMerged[i] + ", hopped over " + dmgDodged[i] + " in " + hops[i] + " hops" + ", own blasts kept off " + ownBlasts[i] + ")"
                         + (players[i].data.isPlaying ? "" : " not-playing") + (players[i].data.playerVel != null && !SimRef(players[i].data.playerVel) ? " not-simulated" : "") + (players[i].data.healthHandler.isRespawning ? " respawning" : "") + (players[i].data.dead ? " DEAD" : ""));
                 EnginePlugin.L.LogInfo(sb.ToString() + (paused ? " (paused)" : ""));
             }

@@ -119,6 +119,7 @@ namespace VampireRounds.Vs
         {
             try
             {
+                if (AutoPlay.WantsBlock(c)) return true;
                 if (IsKeyboardPlayer(c) && (Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Space))) return true;
                 var p = c.PlayerInput;
                 if (p != null && (p.GetButtonDown(19) || p.GetButtonDown(16))) return true; // LeftTrigger, ActionBottomRow2

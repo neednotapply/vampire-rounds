@@ -139,10 +139,33 @@ namespace VampireRounds
         public const int ChipSize = 72;
         private static readonly AccessTools.FieldRef<CardBarButton, CardInfo> ButtonCard = AccessTools.FieldRefAccess<CardBarButton, CardInfo>("card");
         private static GameObject chipCanvas;
-        private static int drawnChips;
+        private static readonly HashSet<int> dumpedSeats = new HashSet<int>();
         public static string ChipFile(int seat, string key) => Path.Combine(Dir, "chip" + seat + "-" + key + ".rgba");
 
         /// <summary>The card bar ROUNDS keeps for a player (CardBarHandler gives each player id its own).</summary>
+        /// <summary>Orange's square fill in ROUNDS's bar (Bar1/Card/CarrdOrange FFB32309): how strong a fill reads over VS.</summary>
+        private const float FillSaturation = 0.86f, FillAlpha = 9f / 255f;
+
+        /// <summary>
+        /// The square's coloured fill (the bar template's child under its frame: CarrdOrange in Orange's bar, CardBlue in Blue's)
+        /// at least as strong as Orange's, in its own hue. ROUNDS draws Blue's as a pale sky-blue wash (96DCFF05) for its dark
+        /// screen; over VS's stages it came out grey (creator, 0.3.0), while Orange's saturated wash reads orange.
+        /// </summary>
+        private static void StrongFill(GameObject square, TMPro.TextMeshProUGUI text)
+        {
+            foreach (var g in square.GetComponentsInChildren<Graphic>(true))
+            {
+                if (g == null || g.gameObject == square || g == text || g is TMPro.TextMeshProUGUI) continue;
+                Color c = g.color;
+                float h, s, v;
+                Color.RGBToHSV(c, out h, out s, out v);
+                var strong = Color.HSVToRGB(h, Mathf.Max(s, FillSaturation), Mathf.Max(v, 0.9f));
+                strong.a = Mathf.Max(c.a, FillAlpha);
+                g.color = strong;
+                return;
+            }
+        }
+
         private static CardBar BarFor(Player p)
         {
             if (p == null || CardBarHandler.instance == null) return null;
@@ -217,6 +240,7 @@ namespace VampireRounds
                 rt.sizeDelta = size;
                 var text = clone.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
                 if (text != null) text.text = letters;
+                StrongFill(clone, text);
                 foreach (var t in clone.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = Layer;
                 Canvas.ForceUpdateCanvases();
                 var corners = new Vector3[4];
@@ -232,7 +256,7 @@ namespace VampireRounds
                 for (int k = 0; k < px.Length; k++) px[k] = ArenaRenderer.UiPixel(black[k], white[k]);
                 WriteRgba(ChipFile(seat, Key(card)), ChipSize, ChipSize, px);
                 EnginePlugin.L.LogInfo("chips: " + (seat == 0 ? "Orange" : "Blue") + "'s " + card.cardName + " (" + letters + (button != null ? "" : ", no square in the bar") + ")");
-                if (Dev && drawnChips++ < 2)
+                if (Dev && dumpedSeats.Add(seat))
                 {
                     var sb = new StringBuilder("chips: dev square of " + card.cardName + ":");
                     foreach (var t in from.GetComponentsInChildren<Transform>(true))
@@ -249,6 +273,18 @@ namespace VampireRounds
                         var cg = t.GetComponent<CanvasGroup>();
                         sb.Append(" <" + t.name + (g != null ? " colour " + ColorUtility.ToHtmlStringRGBA(g.color) : "") + (cg != null ? " group " + cg.alpha : "") + ">");
                     }
+                    if (button != null)
+                    {
+                        sb.Append(" | live square:");
+                        foreach (var t in button.GetComponentsInChildren<Transform>(true))
+                        {
+                            var g = t.GetComponent<Graphic>();
+                            var cg = t.GetComponent<CanvasGroup>();
+                            sb.Append(" [" + t.name + (g != null ? " colour " + ColorUtility.ToHtmlStringRGBA(g.color) : "") + (cg != null ? " group " + cg.alpha : "") + "]");
+                        }
+                    }
+                    try { sb.Append(" | player colour " + ColorUtility.ToHtmlStringRGBA(PlayerSkinBank.GetPlayerSkinColors(p.playerID).color) + " team " + p.teamID + " id " + p.playerID); } catch { }
+                    sb.Append(" | bar " + bar.name + " of " + bar.transform.parent.name);
                     EnginePlugin.L.LogInfo(sb.ToString());
                 }
                 return true;

@@ -27,6 +27,8 @@ namespace VampireRounds.Vs
         {
             ids.Clear();
             byId.Clear();
+            drift.Clear();
+            drifting.Clear();
             var L = Link.L;
             if (L == null) return;
             hitRead = L.I(ArenaLink.ResultOff + ArenaLink.R_HitWrite);
@@ -158,6 +160,33 @@ namespace VampireRounds.Vs
             TestMode.Mark("enemy-hit");
         }
 
+        private static readonly Dictionary<IntPtr, Vector2> drift = new Dictionary<IntPtr, Vector2>();
+        private static readonly Dictionary<IntPtr, EnemyController> drifting = new Dictionary<IntPtr, EnemyController>();
+        private static readonly List<IntPtr> driftDone = new List<IntPtr>();
+
+        /// <summary>Enemies sliding from a lasting push move with their built-up velocity each frame (VS units/s), which
+        /// fades once the push stops (tuning enemyDriftFade per second); paused with VS.</summary>
+        public static void Drift(bool paused)
+        {
+            if (drift.Count == 0 || paused) return;
+            float dt = Time.deltaTime, keep = Mathf.Exp(-Tuning.enemyDriftFade * dt);
+            driftDone.Clear();
+            foreach (var kv in drifting)
+            {
+                var e = kv.Value;
+                Vector2 v = drift[kv.Key];
+                if (e == null || e.IsDead || v.sqrMagnitude < 0.0025f) { driftDone.Add(kv.Key); continue; }
+                try
+                {
+                    var t = e._cachedTransform;
+                    t.position = t.position + new Vector3(v.x * dt, v.y * dt, 0f);
+                }
+                catch { driftDone.Add(kv.Key); continue; }
+                drift[kv.Key] = v * keep;
+            }
+            foreach (var k in driftDone) { drift.Remove(k); drifting.Remove(k); }
+        }
+
         public static void ApplyFx(ArenaLink L)
         {
             int write = L.I(ArenaLink.ResultOff + ArenaLink.R_FxWrite);
@@ -168,21 +197,40 @@ namespace VampireRounds.Vs
                 int f = ArenaLink.ResultOff + ArenaLink.R_Fx + (fxRead % ArenaLink.FxRing) * ArenaLink.FxSize;
                 if (L.I(f + ArenaLink.FX_Serial) != fxRead + 1) break;
                 int target = L.I(f + ArenaLink.FX_Target), type = L.I(f + ArenaLink.FX_Type);
-                float a = L.F(f + ArenaLink.FX_A), b = L.F(f + ArenaLink.FX_B);
+                float a = L.F(f + ArenaLink.FX_A), b = L.F(f + ArenaLink.FX_B), c = L.F(f + ArenaLink.FX_C), d = L.F(f + ArenaLink.FX_D);
                 if (L.I(f + ArenaLink.FX_Serial) != fxRead + 1) break;
                 fxRead++;
                 EnemyController e;
                 if (!byId.TryGetValue(target, out e) || e == null || e.IsDead) continue;
-                try { Fx(e, type, a, b); }
+                try { Fx(e, type, a, b, c, d); }
                 catch (Exception ex) { Mod.Once("enemies: effect " + type, ex); }
             }
         }
 
-        private static void Fx(EnemyController e, int type, float a, float b)
+        private static void Fx(EnemyController e, int type, float a, float b, float c, float d)
         {
             bool boss = e.IsBoss;
             switch (type)
             {
+                case ArenaLink.FxGravity:
+                {
+                    // Seen from above nothing falls: more gravity (Grounded, Crush) pins the enemy to the ground, so it walks
+                    // slower; less or upside-down gravity (Toss, Flip) lifts it off its feet, helpless for a moment.
+                    float secs = Mathf.Max(0.1f, b);
+                    if (a > 1f) e.SlowEnemy(secs * 1000f, 1f, Mathf.Clamp(1f - 1f / a, 0.2f, 0.6f) * (boss ? Tuning.bossSlowScale : Tuning.enemySlowScale));
+                    else if (a < 1f) e.Freeze(Mathf.Min(secs, boss ? Tuning.bossStunCap : Tuning.enemyStunCap) * 1000f, 1f, 255u);
+                    break;
+                }
+                case ArenaLink.FxPull:
+                {
+                    // Implode's pull toward the blast (a, b: the point in VS units): most of the way in, bosses stay put.
+                    if (boss) break;
+                    var t = e._cachedTransform;
+                    Vector2 to = new Vector2(a, b) - new Vector2(t.position.x, t.position.y);
+                    Vector2 step = Vector2.ClampMagnitude(to * Tuning.enemyPullShare, Tuning.enemyPushMax);
+                    t.position = t.position + new Vector3(step.x, step.y, 0f);
+                    break;
+                }
                 case ArenaLink.FxSlow:
                 {
                     float amount = Mathf.Clamp(a * (boss ? Tuning.bossSlowScale : Tuning.enemySlowScale), 0f, 0.9f);
@@ -203,6 +251,17 @@ namespace VampireRounds.Vs
                 case ArenaLink.FxForce:
                 {
                     if (boss) break;
+                    if (d > 0.5f)
+                    {
+                        // A push that keeps going (a Thruster stuck to the enemy, ROUNDS's Force every physics step): its
+                        // velocity builds up while it burns and the enemy slides with it (Drift), as a thruster rockets a
+                        // ROUNDS player across the map. One frame's share as a nudge moved it about nothing (0.3.0).
+                        Vector2 v;
+                        drift.TryGetValue(e.Pointer, out v);
+                        drift[e.Pointer] = Vector2.ClampMagnitude(v + new Vector2(a, b), Tuning.enemyDriftMax);
+                        drifting[e.Pointer] = e;
+                        break;
+                    }
                     Vector2 dv = new Vector2(a, b) * Tuning.enemyPushScale;
                     if (dv.magnitude > Tuning.enemyPushMax) dv = dv.normalized * Tuning.enemyPushMax;
                     var t = e._cachedTransform;
