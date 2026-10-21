@@ -10,6 +10,13 @@
   },
   "rows": [
     {
+      "id": "launcher",
+      "zipPath": "managed/",
+      "to": "{managed}",
+      "license": "MIT, Vampire Rounds contributors (adapted from Roundhead's launcher, MIT)",
+      "built": "src/Launcher"
+    },
+    {
       "id": "vs_mod",
       "zipPath": "Mods/VampireRounds.dll",
       "to": "{game}/Mods",
@@ -48,8 +55,8 @@
       "id": "art",
       "zipPath": "UserData/VampireRounds/art/",
       "to": "{game}/UserData",
-      "license": "MIT, Vampire Rounds contributors (drawn by tools/art.py)",
-      "built": "tools/art.py"
+      "license": "MIT, Vampire Rounds contributors (drawn by tools/art.py; the adventure backdrop painted by tools/cover.py)",
+      "built": "tools/art.py, tools/cover.py --raw"
     },
     {
       "id": "licenses",

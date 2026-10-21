@@ -1,4 +1,4 @@
-"""Vampire Rounds's own art, drawn in code (no game files): the adventure title and the ROUNDS gun's VS icon.
+"""Vampire Rounds's own art, drawn in code (no game files): the adventure title and the ROUNDS gun's VS icon (16 px).
 
 usage: python -I tools/art.py <out dir>
 Writes title.rgba / gun_icon.rgba (RawImage format: "VRI1", width, height, RGBA rows bottom-up) and a .png of each
@@ -53,21 +53,28 @@ def title():
 
 
 def gun_icon():
-    s = 8
-    img = Image.new("RGBA", (32 * s, 32 * s), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    def poly(pts, fill):
-        d.polygon([(x * s, y * s) for x, y in pts], fill=fill)
-    outline = (255, 255, 255, 255)
-    body = [(5, 11), (27, 11), (27, 16), (14, 16), (12, 25), (6, 25), (8, 16), (5, 16)]
-    # white outline (grown), then the black gun, ROUNDS style
-    for ox in (-1, 0, 1):
-        for oy in (-1, 0, 1):
-            poly([(x + ox * 0.6, y + oy * 0.6) for x, y in body], outline)
-    poly(body, (20, 20, 24, 255))
-    poly([(21, 12), (26, 12), (26, 13.2), (21, 13.2)], (80, 80, 90, 255))
-    d.ellipse([(9 * s, 20 * s), (11 * s, 22 * s)], fill=(244, 122, 33, 255))
-    return img.resize((64, 64), Image.LANCZOS)
+    """ROUNDS's pistol as a VS weapon icon: VS sizes weapon icons by their pixels (3.2 UI units a pixel in character
+    select; its own are 16 px, the Whip's too), so it is drawn at 16 px, pixel by pixel, black with a white outline."""
+    n = 16
+    body = Image.new("1", (n, n), 0)
+    d = ImageDraw.Draw(body)
+    # the 32-unit drawing of the gun, scaled into the 16-px square and centred
+    pts = [(5, 11), (27, 11), (27, 16), (14, 16), (12, 25), (6, 25), (8, 16), (5, 16)]
+    d.polygon([((x - 5) * 0.56 + 1.5, (y - 11) * 0.56 + 4.1) for x, y in pts], fill=1)
+    m = body.load()
+    img = Image.new("RGBA", (n, n), (0, 0, 0, 0))
+    px = img.load()
+    for y in range(n):
+        for x in range(n):
+            if m[x, y]:
+                px[x, y] = (20, 20, 24, 255)
+            elif any(0 <= x + dx < n and 0 <= y + dy < n and m[x + dx, y + dy] for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
+                px[x, y] = (255, 255, 255, 255)
+    for x in range(9, 13):   # the slide's highlight
+        if m[x, 5]:
+            px[x, 5] = (80, 80, 90, 255)
+    px[4, 9] = (244, 122, 33, 255)   # ROUNDS's orange dot on the grip
+    return img
 
 
 def main():

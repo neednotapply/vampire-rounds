@@ -7,7 +7,9 @@ namespace VampireRounds.Vs
     /// <summary>
     /// ROUNDS's picture in VS (sheets/systems.json "frames"). In a run, the world picture (Orange, Blue, their guns,
     /// bullets and effects, rendered by the hidden ROUNDS over exactly VS's camera view) is a sprite laid over VS's stage
-    /// at the camera, and ROUNDS's game UI (its card bar) is drawn over the screen. During a card pick, ROUNDS's own pick
+    /// at the camera, drawn where VS draws the character it stands in for (its sorting layer and order): VS sorts enemies
+    /// and props around its player by height, so what stands in front of Orange Guy covers him as it would cover a VS
+    /// hero (as Roundhead draws ROUNDS on Cuphead's player layer). ROUNDS's game UI (its card bar) is drawn over the screen. During a card pick, ROUNDS's own pick
     /// screen fills the screen. VS's own sprite of Orange or Blue is hidden while ROUNDS draws them.
     /// </summary>
     public static class FrameView
@@ -88,7 +90,6 @@ namespace VampireRounds.Vs
             UnityEngine.Object.DontDestroyOnLoad(layer);
             layerRenderer = layer.AddComponent<SpriteRenderer>();
             layerRenderer.sprite = worldSprite;
-            layerRenderer.sortingOrder = 32000;
             layer.SetActive(false);
         }
 
@@ -103,6 +104,7 @@ namespace VampireRounds.Vs
                 // VS's own sprite setup (its material, layer and sorting layer), so VS's camera draws it like a character.
                 var r = c._CharacterRenderer;
                 if (layerRenderer.sortingLayerID != r.sortingLayerID) layerRenderer.sortingLayerID = r.sortingLayerID;
+                if (layerRenderer.sortingOrder != r.sortingOrder) layerRenderer.sortingOrder = r.sortingOrder;
                 if (layer.layer != r.gameObject.layer) layer.layer = r.gameObject.layer;
                 if (r.sharedMaterial != null && layerRenderer.sharedMaterial != r.sharedMaterial && !materialLogged)
                 {

@@ -9,6 +9,24 @@
   },
   "rows": [
     {
+      "id": "launcher",
+      "game": "vs",
+      "does": "the launcher Melty starts (src/Launcher, adapted from Roundhead's): browse ROUNDS mods on Thunderstore (card mods only, ticked by default), install them with their dependencies into the hidden ROUNDS's BepInEx (VS's UserData/VampireRounds/rounds), turn them on and off, update them, copy an r2modman profile or code; Play starts VS with the mod and waits for it to close",
+      "symbol": "GameRunner.Play,ProfileManager.Install,ProfileManager.SetEnabled"
+    },
+    {
+      "id": "faces",
+      "game": "rounds",
+      "does": "Orange Guy's and Blue Guy's faces: the launcher's face editor (EDIT in its FACES window) builds each guy's face from ROUNDS's own eyes, mouths and details, dragged into place, or starts from one of the player's eight ROUNDS faces; faces.txt in %LOCALAPPDATA%/VampireRounds holds them (ROUNDS's saved faces untouched); the engine applies them before making its players, and a hidden --vampirerounds-faces run draws the eight faces on each guy plus each guy's bare body and every face part (faces/parts) for the editor",
+      "symbol": "Faces.ApplyChoice,Faces.DrawSheet,Faces.Draw,FaceParts.Draw,FaceEditorForm.Choose"
+    },
+    {
+      "id": "boot",
+      "game": "vs",
+      "does": "once per VS start, pass VS's warning and title screens and open the Vampire Rounds adventure through VS's own pages, so VS starts on the adventure's menu",
+      "symbol": "Boot.Tick"
+    },
+    {
       "id": "vs_mod",
       "game": "vs",
       "does": "the mod's start, frame loop and on-screen drawing",
@@ -53,7 +71,7 @@
     {
       "id": "frames",
       "game": "vs",
-      "does": "ROUNDS's picture over VS's stage (Orange, Blue, bullets, effects), the card bar and the pick screen",
+      "does": "ROUNDS's picture on VS's stage (Orange Guy, Blue Guy, bullets, effects) at the hidden VS hero's sorting layer and order, the card bar and the pick screen",
       "symbol": "FrameView.Tick,FrameView.Gui"
     },
     {
@@ -95,7 +113,7 @@
     {
       "id": "portraits",
       "game": "rounds",
-      "does": "Orange's and Blue's pictures for VS's menus",
+      "does": "Orange Guy's and Blue Guy's pictures for VS's menus: a posed copy of ROUNDS's player (standing, gun level), framed tightly, 240 px (VS loads 40 px)",
       "symbol": "Portraits.Tick"
     },
     {

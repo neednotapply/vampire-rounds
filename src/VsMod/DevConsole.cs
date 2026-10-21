@@ -183,6 +183,52 @@ namespace VampireRounds.Vs
                     }
                     return sb.ToString();
                 }
+                case "sorting":
+                {
+                    // sorting [radius]: how VS sorts sprites (camera and project settings), and every enabled SpriteRenderer
+                    // within radius of player 1 with its sorting layer, order, sort point and z
+                    float rad = p.Length > 1 ? float.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture) : 2f;
+                    var sb = new StringBuilder();
+                    var cam = Camera.main;
+                    sb.AppendLine("graphics: " + UnityEngine.Rendering.GraphicsSettings.transparencySortMode + " axis " + UnityEngine.Rendering.GraphicsSettings.transparencySortAxis
+                        + " | camera: " + (cam != null ? cam.transparencySortMode + " axis " + cam.transparencySortAxis + " z " + cam.transform.position.z : "none"));
+                    var c = Session.SeatChar[0] ?? Session.SeatChar[1];
+                    Vector3 at = c != null ? c.transform.position : (cam != null ? cam.transform.position : Vector3.zero);
+                    sb.AppendLine("player at " + at);
+                    foreach (var r in UnityEngine.Object.FindObjectsOfType<Renderer>())
+                    {
+                        if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) continue;
+                        if (((Vector2)(r.bounds.center - at)).magnitude > rad && ((Vector2)(r.transform.position - at)).magnitude > rad) continue;
+                        string path = r.name;
+                        for (var t = r.transform.parent; t != null; t = t.parent) path = t.name + "/" + path;
+                        var sr = r as SpriteRenderer;
+                        sb.AppendLine(path + " [" + r.GetIl2CppType().Name + "] layer=" + r.sortingLayerName + "(" + r.sortingLayerID + ")/" + r.sortingOrder
+                            + (sr != null ? " sortPoint=" + sr.spriteSortPoint + " sprite=" + (sr.sprite != null ? sr.sprite.name : "-") : "")
+                            + " pos=" + r.transform.position.ToString("F3") + " bounds=" + r.bounds.center.ToString("F2") + "/" + r.bounds.size.ToString("F2")
+                            + " goLayer=" + r.gameObject.layer + " mat=" + (r.sharedMaterial != null ? r.sharedMaterial.name : "-"));
+                    }
+                    var sgs = UnityEngine.Object.FindObjectsOfType<UnityEngine.Rendering.SortingGroup>();
+                    sb.AppendLine(sgs.Length + " sorting groups");
+                    return sb.ToString();
+                }
+                case "ui":
+                {
+                    // ui <text>: active UI Images whose path contains the text, with their sprite's pixels and units
+                    var sb = new StringBuilder();
+                    foreach (var im in UnityEngine.Object.FindObjectsOfType<UnityEngine.UI.Image>())
+                    {
+                        if (im == null || !im.isActiveAndEnabled) continue;
+                        string path = im.name;
+                        for (var tr = im.transform.parent; tr != null; tr = tr.parent) path = tr.name + "/" + path;
+                        if (p.Length > 1 && path.IndexOf(p[1], StringComparison.OrdinalIgnoreCase) < 0) continue;
+                        var s = im.sprite;
+                        var rt = im.rectTransform;
+                        sb.AppendLine(path + " sprite=" + (s != null ? s.name + " tex=" + (s.texture != null ? s.texture.name : "-") + " rect=" + s.rect + " ppu=" + s.pixelsPerUnit + " pivot=" + s.pivot : "-")
+                            + " size=" + rt.rect.size + " scale=" + rt.lossyScale.ToString("F3") + " preserveAspect=" + im.preserveAspect + " type=" + im.type
+                            + " canvasRefPpu=" + (im.canvas != null ? im.canvas.referencePixelsPerUnit.ToString() : "-") + " anchors=" + rt.anchorMin + "-" + rt.anchorMax);
+                    }
+                    return sb.ToString();
+                }
                 default:
                     return "unknown command";
             }

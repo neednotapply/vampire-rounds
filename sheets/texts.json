@@ -1,23 +1,23 @@
 {
   "sheet": "texts",
-  "about": "Every text the mod adds to VS's own localisation (I2 terms, the same text in every language). {type:<characters row>} becomes that character's runtime CharacterType number.",
+  "about": "Every text the mod adds to VS's own localisation (I2 terms, the same text in every language; --- is I2's mark for an empty text). {type:<characters row>} becomes that character's runtime CharacterType number.",
   "columns": {"id": "row id", "term": "I2 term", "en": "text"},
   "rows": [
     {"id": "adv_header", "term": "adventureLang/{ADV_LIB_001}header", "en": "Vampire Rounds"},
-    {"id": "adv_description", "term": "adventureLang/{ADV_LIB_001}description", "en": "ROUNDS's Orange and Blue fight the night with ROUNDS's gun. Every level-up is a ROUNDS card."},
+    {"id": "adv_description", "term": "adventureLang/{ADV_LIB_001}description", "en": "ROUNDS's Orange Guy and Blue Guy fight the night with ROUNDS's gun. Every level-up is a ROUNDS card."},
     {"id": "stage_name", "term": "stageLang/{TEST}stageName", "en": "Mad Forest"},
     {"id": "stage_description", "term": "stageLang/{TEST}description", "en": "Two ROUNDS blobs wander into the Mad Forest. Pick your cards, build your gun, survive."},
     {"id": "stage_tips", "term": "stageLang/{TEST}tips", "en": "Level-ups and chests are ROUNDS card picks. Right mouse or Space blocks."},
     {"id": "stage_hyper", "term": "stageLang/{TEST}hyperTips", "en": "50% Gold bonus"},
-    {"id": "goal_1", "term": "progressLang/{TEST001_ACH001}description", "en": "Survive 10 minutes in the Mad Forest as Orange or Blue."},
+    {"id": "goal_1", "term": "progressLang/{TEST001_ACH001}description", "en": "Survive 10 minutes in the Mad Forest as Orange Guy or Blue Guy."},
     {"id": "gun_name", "term": "weaponLang/{___PLCHLD200}name", "en": "ROUNDS Gun"},
     {"id": "gun_description", "term": "weaponLang/{___PLCHLD200}description", "en": "ROUNDS's own gun, fired by your ROUNDS. Aims at the nearest enemy; the mouse aims it too."},
     {"id": "gun_tips", "term": "weaponLang/{___PLCHLD200}tips", "en": "Level-ups and chests are ROUNDS card picks that change it."},
-    {"id": "orange_name", "term": "characterLang/{type:orange}charName", "en": "Orange"},
-    {"id": "orange_surname", "term": "characterLang/{type:orange}surname", "en": "of ROUNDS"},
+    {"id": "orange_name", "term": "characterLang/{type:orange}charName", "en": "Orange Guy"},
+    {"id": "orange_surname", "term": "characterLang/{type:orange}surname", "en": "---"},
     {"id": "orange_description", "term": "characterLang/{type:orange}description", "en": "ROUNDS's orange player with ROUNDS's gun and block. Every level-up is a ROUNDS card pick."},
-    {"id": "blue_name", "term": "characterLang/{type:blue}charName", "en": "Blue"},
-    {"id": "blue_surname", "term": "characterLang/{type:blue}surname", "en": "of ROUNDS"},
+    {"id": "blue_name", "term": "characterLang/{type:blue}charName", "en": "Blue Guy"},
+    {"id": "blue_surname", "term": "characterLang/{type:blue}surname", "en": "---"},
     {"id": "blue_description", "term": "characterLang/{type:blue}description", "en": "ROUNDS's blue player with ROUNDS's gun and block. Every level-up is a ROUNDS card pick."}
   ]
 }

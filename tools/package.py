@@ -25,18 +25,20 @@ WriteUnityLog = true
 README = """Vampire Rounds {version}
 =====================
 
-A Vampire Survivors adventure where ROUNDS's Orange and Blue fight with ROUNDS's gun, and every level-up and treasure
+A Vampire Survivors adventure where ROUNDS's Orange Guy and Blue Guy fight with ROUNDS's gun, and every level-up and treasure
 chest is a ROUNDS card pick. Made for Melty (melty.gg): Melty installs it and starts it with one press of Play.
 
 Needs your own Vampire Survivors and your own ROUNDS (on its "old-rounds-for-mods" Steam beta branch), both on Steam.
-Your ROUNDS runs hidden in the background while you play: it draws Orange and Blue, runs their gun, cards and block,
+Your ROUNDS runs hidden in the background while you play: it draws Orange Guy and Blue Guy, runs their gun, cards and block,
 and shows its card pick. Nothing from either game is in this package.
 
-Playing: open Adventures in Vampire Survivors and pick Vampire Rounds. Choose Orange (or Blue). The gun aims at the
+Playing: Melty starts the Vampire Rounds launcher: add ROUNDS card mods from Thunderstore if you like (card mods only is
+ticked; they install into the hidden ROUNDS's BepInEx) and make each guy's face in the face editor (FACES), then press PLAY. Vampire Survivors opens on the Vampire Rounds
+adventure's menu. Choose Orange Guy (or Blue Guy). The gun aims at the
 nearest enemy and fires by itself; move the mouse to aim it yourself. Right mouse or Space blocks (gamepad: left
 trigger). A second player on a gamepad can join as the other colour on the same PC.
 
-Files: Mods/VampireRounds.dll (the Vampire Survivors mod, MelonLoader), Plugins/VampireRounds.InteropFix.dll (lets
+Files: managed/VampireRoundsLauncher.exe (the launcher), Mods/VampireRounds.dll (the Vampire Survivors mod, MelonLoader), Plugins/VampireRounds.InteropFix.dll (lets
 MelonLoader mods run on Vampire Survivors's Unity 6 build), UserData/VampireRounds/rounds (BepInEx 5 and
 the ROUNDS engine, which ROUNDS loads from there), and version.dll in the ROUNDS folder (UnityDoorstop, which loads the
 engine only when Vampire Rounds starts ROUNDS). Logs: MelonLoader/Latest.log in the Vampire Survivors folder and
@@ -69,11 +71,14 @@ def main():
     run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "q", "-p:Version=" + version], cwd=os.path.join(ROOT, "src", "Engine"))
     run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "q", "-p:Version=" + version], cwd=os.path.join(ROOT, "src", "VsMod"))
     run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "q", "-p:Version=" + version], cwd=os.path.join(ROOT, "src", "InteropFix"))
+    run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "q", "-p:Version=" + version], cwd=os.path.join(ROOT, "src", "Launcher"))
     if os.path.exists(STAGE):
         shutil.rmtree(STAGE)
     ud = os.path.join(STAGE, "UserData", "VampireRounds")
     copy(os.path.join(ROOT, "src", "VsMod", "bin", "Release", "net6.0", "VampireRounds.dll"), os.path.join(STAGE, "Mods", "VampireRounds.dll"))
     copy(os.path.join(ROOT, "src", "InteropFix", "bin", "Release", "net6.0", "VampireRounds.InteropFix.dll"), os.path.join(STAGE, "Plugins", "VampireRounds.InteropFix.dll"))
+    for f in ("VampireRoundsLauncher.exe", "VampireRoundsLauncher.exe.config"):
+        copy(os.path.join(ROOT, "src", "Launcher", "bin", "Release", "net48", f), os.path.join(STAGE, "managed", f))
     copy(os.path.join(ROOT, "src", "Engine", "bin", "Release", "net472", "VampireRounds.Engine.dll"),
          os.path.join(ud, "rounds", "BepInEx", "plugins", "VampireRounds.Engine", "VampireRounds.Engine.dll"))
     core = os.path.join(DL, "bepinex", "BepInEx", "core")
@@ -82,6 +87,7 @@ def main():
     # No BepInEx.cfg: BepInEx writes its own (defaults: no console, a disk log) beside the plugins at its first start.
     copy(os.path.join(DL, "bepinex", "winhttp.dll"), os.path.join(STAGE, "proxy-rounds", "version.dll"))
     run([PY, "-I", os.path.join(ROOT, "tools", "art.py"), os.path.join(ud, "art")])
+    run([PY, "-I", os.path.join(ROOT, "tools", "cover.py"), "--raw", os.path.join(ud, "art")])
     for f in os.listdir(os.path.join(ud, "art")):
         if f.endswith(".png"):
             os.remove(os.path.join(ud, "art", f))  # people look at media/art; the mod reads .rgba

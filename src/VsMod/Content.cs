@@ -224,7 +224,7 @@ namespace VampireRounds.Vs
             {
                 ["level"] = 1,
                 ["charName"] = row.VsName,
-                ["surname"] = row.Surname,
+                ["surname"] = row.Surname == "none" ? "" : row.Surname,
                 ["description"] = row.Description,
                 ["startingWeapon"] = GunSlot.ToString(),
                 ["spriteName"] = row.Id + "_01.png",
@@ -293,13 +293,72 @@ namespace VampireRounds.Vs
         }
 
         private static bool inBackground;
+        private static GameObject backdropTemplate;
+        private static bool backdropTried;
+        public const string BackdropName = "VampireRoundsBackdrop";
 
-        /// <summary>VS has no backdrop for a new adventure (it gives an empty white one): Vampire Rounds uses A Garlic
-        /// Paradise's, the base-game adventure that opens in a forest like the Mad Forest.</summary>
+        /// <summary>The adventure's own backdrop (media/art/adventure_bg.png, painted by tools/cover.py): a UI picture that
+        /// covers whatever holds it, as VS's own backdrops do. VS instantiates it in the adventure's card and moves that copy
+        /// behind the menus when the adventure starts. Pixel art like VS's, so drawn point-filtered.</summary>
+        private static GameObject BackdropTemplate()
+        {
+            if (backdropTemplate != null || backdropTried) return backdropTemplate;
+            backdropTried = true;
+            var tex = RawImage.Load(Path.Combine(ArtDir, "adventure_bg.rgba"));
+            if (tex == null) { Mod.Warn("content: missing art adventure_bg.rgba; the adventure borrows A Garlic Paradise's backdrop"); return null; }
+            tex.filterMode = FilterMode.Point;
+            tex.name = BackdropName;
+            var sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            sprite.name = BackdropName;
+            sprite.hideFlags = HideFlags.DontUnloadUnusedAsset;
+            // Kept on an inactive shelf: copies made from it are active where VS puts them.
+            var shelf = new GameObject("VampireRounds templates");
+            shelf.SetActive(false);
+            UnityEngine.Object.DontDestroyOnLoad(shelf);
+            var root = new GameObject(BackdropName);
+            var rt = root.AddComponent<RectTransform>();
+            root.transform.SetParent(shelf.transform, false);
+            Fill(rt);
+            root.AddComponent<CanvasGroup>();  // VS fades the card's copy in behind the menus
+            root.AddComponent<UnityEngine.UI.RectMask2D>();
+            var art = new GameObject("Art");
+            var artRt = art.AddComponent<RectTransform>();
+            art.transform.SetParent(root.transform, false);
+            artRt.anchorMin = artRt.anchorMax = artRt.pivot = new Vector2(0.5f, 0.5f);
+            var img = art.AddComponent<UnityEngine.UI.Image>();
+            img.sprite = sprite;
+            img.raycastTarget = false;
+            var fit = art.AddComponent<UnityEngine.UI.AspectRatioFitter>();
+            fit.aspectMode = UnityEngine.UI.AspectRatioFitter.AspectMode.EnvelopeParent;
+            fit.aspectRatio = (float)tex.width / tex.height;
+            backdropTemplate = root;
+            Mod.Log("content: adventure backdrop " + tex.width + "x" + tex.height + " ready");
+            return root;
+        }
+
+        private static void Fill(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
+        }
+
+        private static string ArtDir => Path.Combine(MelonLoader.Utils.MelonEnvironment.UserDataDirectory, "VampireRounds", "art");
+
+        /// <summary>VS has no backdrop for a new adventure (it gives an empty white one): the adventure's card, its list
+        /// preview and the completed popup get Vampire Rounds's own (A Garlic Paradise's if the picture is missing).</summary>
         public static void Background(MainMenuBackgroundFactory f, AdventureType type, ref GameObject result)
         {
             if (type != Adventure || inBackground) return;
-            try { inBackground = true; result = f.GetBackgroundForAdventureType(AdventureType.ADV_POES_001); }
+            try
+            {
+                var own = BackdropTemplate();
+                if (own != null) { result = own; return; }
+                inBackground = true;
+                result = f.GetBackgroundForAdventureType(AdventureType.ADV_POES_001);
+            }
             catch (Exception e) { Mod.Once("content: background", e); }
             finally { inBackground = false; }
         }
@@ -310,37 +369,82 @@ namespace VampireRounds.Vs
             public static bool Prefix(MainMenuBackgroundManager __instance, AdventureType adventureType) => MenuBackground(__instance, adventureType);
         }
 
-        /// <summary>The menus behind the adventure (its main menu, character and chapter select) show VS's own main-menu art:
-        /// another adventure's animated backdrop only fills in its pictures for that adventure (it stays white here).</summary>
+        /// <summary>The menus behind the adventure (its main menu, character and chapter select) show its own backdrop
+        /// (VS's main-menu art when the picture is missing: another adventure's animated backdrop only fills in its pictures
+        /// for that adventure and stays white here).</summary>
         public static bool MenuBackground(MainMenuBackgroundManager m, AdventureType type)
         {
             if (type != Adventure) return true;
-            try { m.ResetBackgroundToMainGame(); ClearBorrowedBackdrop(); }
+            try
+            {
+                m.ResetBackgroundToMainGame();
+                MenuBackdrop(m._CustomBackgroundHolder);
+            }
             catch (Exception e) { Mod.Once("content: menu backdrop", e); }
             return false;
         }
 
-        private static float nextBackdropCheck;
-
-        /// <summary>Menus of the Vampire Rounds adventure: the backdrop the adventure list moved behind them (another
-        /// adventure's, white here) is put away, so VS's own main-menu art shows.</summary>
-        public static void ClearBorrowedBackdrop()
+        /// <summary>VS's backdrop holder behind the menus ("View - MenuBackground/CustomBackgroundHolder"): any other
+        /// backdrop in it (another adventure's, white here) is put away and the adventure's own put in. VS puts an
+        /// adventure's backdrop there on more paths than SetBackgroundForAdventure, so the menu tick does this too.</summary>
+        private static void MenuBackdrop(Transform holder)
         {
-            var holder = GameObject.Find("CustomBackgroundHolder");
             if (holder == null) return;
-            for (int i = 0; i < holder.transform.childCount; i++)
+            for (int i = 0; i < holder.childCount; i++)
             {
-                var c = holder.transform.GetChild(i).gameObject;
-                if (c.activeSelf) c.SetActive(false);
+                var c = holder.GetChild(i).gameObject;
+                if (!c.name.StartsWith(BackdropName, StringComparison.Ordinal) && c.activeSelf) c.SetActive(false);
             }
+            var own = BackdropTemplate();
+            if (own == null || OwnBackdropIn(holder) != null) return;
+            var copy = UnityEngine.Object.Instantiate(own, holder, false);
+            Fill(copy.GetComponent<RectTransform>());
+            copy.SetActive(true);
+            if (!holder.gameObject.activeSelf) holder.gameObject.SetActive(true);
+            Mod.Log("content: adventure backdrop behind the menus");
+            if (DevConsole.On) LogBackdrop(holder);
         }
 
-        /// <summary>Every second while VS is in the adventure's menus.</summary>
+        /// <summary>Dev runs: where the menu backdrop went (the holder, its parent's children in draw order, what is on).</summary>
+        private static void LogBackdrop(Transform holder)
+        {
+            string Path(Transform t) { string s = t.name; for (var p = t.parent; p != null; p = p.parent) s = p.name + "/" + s; return s; }
+            var sb = new System.Text.StringBuilder("content: menu backdrop: holder " + Path(holder) + " active=" + holder.gameObject.activeInHierarchy + " children:");
+            for (int i = 0; i < holder.childCount; i++) { var c = holder.GetChild(i); var rt = c.GetComponent<RectTransform>(); sb.Append(" [" + c.name + " on=" + c.gameObject.activeSelf + (rt != null ? " rect=" + rt.rect.size : "") + "]"); }
+            var parent = holder.parent;
+            if (parent != null)
+            {
+                sb.Append("; beside it in " + parent.name + ":");
+                for (int i = 0; i < parent.childCount; i++) { var c = parent.GetChild(i); sb.Append(" [" + i + " " + c.name + " on=" + c.gameObject.activeSelf + "]"); }
+            }
+            Mod.Log(sb.ToString());
+        }
+
+        private static GameObject OwnBackdropIn(Transform holder)
+        {
+            for (int i = 0; i < holder.childCount; i++)
+            {
+                var c = holder.GetChild(i).gameObject;
+                if (c.activeSelf && c.name.StartsWith(BackdropName, StringComparison.Ordinal)) return c;
+            }
+            return null;
+        }
+
+        private static float nextBackdropCheck;
+        private static MainMenuBackgroundManager menuBackgrounds;
+
+        /// <summary>Twice a second while VS is in the adventure's menus.</summary>
         public static void MenuTick()
         {
             if (Time.unscaledTime < nextBackdropCheck) return;
             nextBackdropCheck = Time.unscaledTime + 0.5f;
-            if (InOurAdventure && !Session.InRun) ClearBorrowedBackdrop();
+            if (!InOurAdventure || Session.InRun) return;
+            try
+            {
+                if (menuBackgrounds == null) menuBackgrounds = UnityEngine.Object.FindObjectOfType<MainMenuBackgroundManager>(true);
+                if (menuBackgrounds != null) MenuBackdrop(menuBackgrounds._CustomBackgroundHolder);
+            }
+            catch (Exception e) { menuBackgrounds = null; Mod.Once("content: menu backdrop tick", e); }
         }
 
         [HarmonyPatch(typeof(MainMenuPage), nameof(MainMenuPage.HasAdventuresUnlocked))]
@@ -490,9 +594,8 @@ namespace VampireRounds.Vs
                 Add(bag, row.Id + "_01.png", sprite);
                 Add(bag, row.Id + "_01", sprite);
             }
-            var art = Path.Combine(MelonLoader.Utils.MelonEnvironment.UserDataDirectory, "VampireRounds", "art");
-            AddRaw(bag, Path.Combine(art, "title.rgba"), "vampirerounds_title", 100f);
-            AddRaw(bag, Path.Combine(art, "gun_icon.rgba"), "gun_icon", 100f);
+            AddRaw(bag, Path.Combine(ArtDir, "title.rgba"), "vampirerounds_title", 100f);
+            AddRaw(bag, Path.Combine(ArtDir, "gun_icon.rgba"), "gun_icon", 100f);
         }
 
         private static void Add(Il2CppSystem.Collections.Generic.Dictionary<SpriteManager.StringHashCaseI, Sprite> bag, string name, Sprite s)

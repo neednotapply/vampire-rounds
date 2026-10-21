@@ -55,7 +55,7 @@
       "game": "vs",
       "target": "MainMenuBackgroundFactory.GetBackgroundForAdventureType",
       "kind": "postfix",
-      "does": "the Vampire Rounds adventure's card and menus use A Garlic Paradise's backdrop (VS has none for a new adventure and shows an empty white one)",
+      "does": "the Vampire Rounds adventure's card, list preview and completed popup show its own backdrop (media/art/adventure_bg.png; VS has none for a new adventure and shows an empty white one; A Garlic Paradise's if the picture is missing)",
       "symbol": "Content.Background"
     },
     {
@@ -63,7 +63,7 @@
       "game": "vs",
       "target": "MainMenuBackgroundManager.SetBackgroundForAdventure",
       "kind": "prefix",
-      "does": "the menus behind the Vampire Rounds adventure show VS's own main-menu art (another adventure's animated backdrop stays white outside its own adventure)",
+      "does": "the menus behind the Vampire Rounds adventure show its own backdrop, put in VS's backdrop holder (another adventure's animated backdrop stays white outside its own adventure)",
       "symbol": "Content.MenuBackground"
     },
     {
@@ -185,6 +185,14 @@
       "kind": "postfix",
       "does": "in Melty's test run (no one playing) Orange walks a slow circle",
       "symbol": "AutoPlay.Walk"
+    },
+    {
+      "id": "e_face_colours",
+      "game": "rounds",
+      "target": "CharacterCreatorItemEquipper.Equip",
+      "kind": "postfix",
+      "does": "a face's parts are drawn with Unity's plain sprite material in their own colours (ROUNDS's soft-shadow material needs its own light pass and turns them dark grey in the engine's cameras)",
+      "symbol": "FaceLookPatches.Equipped"
     },
     {
       "id": "r_general_input",

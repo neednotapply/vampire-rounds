@@ -57,6 +57,9 @@ namespace VampireRounds.Vs
                 return;
             }
             if (!Content.AdventureInData || Content.Types.Count == 0) return;
+            // VS's start into the adventure is Boot's (as for players); the test takes over on the adventure's menu.
+            if (!Boot.Done) return;
+            if (Content.InOurAdventure) adventureConfirmed = true;
             var warning = Active<WarningPage>();
             if (warning != null) { Step("past the warning", () => warning.Complete()); return; }
             var landing = Active<LandingScreenPage>();

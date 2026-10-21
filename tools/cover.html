@@ -1,0 +1,502 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Vampire Rounds's cover art, painted in code (no game files): Vampire Survivors's blood-moon cover played by ROUNDS's
+     faceted balls. tools/cover.py renders it with headless Edge; open it with ?out=card&show=1 to look at one scene. -->
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Lilita+One&display=block" rel="stylesheet">
+<style>html,body{margin:0;background:#111;color:#ccc;font:12px monospace}canvas{display:block;max-width:100%}</style>
+</head>
+<body>
+<script>
+"use strict";
+// ------------------------------------------------------------------ helpers
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let rand=mulberry32(1);
+const rr=(a,b)=>a+(b-a)*rand();
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const css=(c,a=1)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const norm=a=>{const l=Math.hypot(a[0],a[1],a[2]);return[a[0]/l,a[1]/l,a[2]/l]};
+const D=d=>d*Math.PI/180;
+
+// Catmull-Rom through points (open or closed), as bezier curves.
+function smooth(ctx,pts,closed){
+  const n=pts.length,get=i=>closed?pts[(i+n)%n]:pts[clamp(i,0,n-1)];
+  ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let i=0;i<(closed?n:n-1);i++){
+    const p0=get(i-1),p1=get(i),p2=get(i+1),p3=get(i+2);
+    ctx.bezierCurveTo(p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6,p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6,p2[0],p2[1]);
+  }
+  if(closed)ctx.closePath();
+}
+function poly(ctx,pts){ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.closePath()}
+
+// ------------------------------------------------------------------ ROUNDS's faceted ball (a jittered icosphere, flat shaded)
+const ballCache={};
+function makeBall(sub,seed,jitter){
+  const key=sub+"/"+seed+"/"+jitter;if(ballCache[key])return ballCache[key];
+  const rnd=mulberry32(seed*7919+13),t=(1+Math.sqrt(5))/2;
+  let V=[[-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],[0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],[t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]].map(norm);
+  let F=[[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],[3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+  for(let s=0;s<sub;s++){
+    const cache=new Map(),NF=[];
+    const mid=(a,b)=>{const k=a<b?a+"_"+b:b+"_"+a;if(cache.has(k))return cache.get(k);V.push(norm(add(V[a],V[b])));cache.set(k,V.length-1);return V.length-1};
+    for(const[a,b,c]of F){const ab=mid(a,b),bc=mid(b,c),ca=mid(c,a);NF.push([a,ab,ca],[b,bc,ab],[c,ca,bc],[ab,bc,ca])}
+    F=NF;
+  }
+  const ax=rnd()*6.28,ay=rnd()*6.28,az=rnd()*6.28;
+  const rot=v=>{let[x,y,z]=v,c=Math.cos(ax),s=Math.sin(ax);[y,z]=[y*c-z*s,y*s+z*c];c=Math.cos(ay);s=Math.sin(ay);[x,z]=[x*c+z*s,-x*s+z*c];c=Math.cos(az);s=Math.sin(az);[x,y]=[x*c-y*s,x*s+y*c];return[x,y,z]};
+  V=V.map(v=>norm(add(rot(v),[(rnd()-.5)*jitter,(rnd()-.5)*jitter,(rnd()-.5)*jitter])));
+  const shade=F.map(()=>rnd()-.5);
+  return ballCache[key]={V,F,shade};
+}
+// m: {base, amb (0..1 per channel), lights:[{d,c,k,wrap,pow,add,spec,shin}], sub, seed, jitter, vary}
+// Coordinates: x right, y down, z toward the viewer.
+function drawBall(ctx,cx,cy,r,m){
+  const b=makeBall(m.sub??2,m.seed??1,m.jitter??0.1),faces=[];
+  b.F.forEach((f,i)=>{
+    const A=b.V[f[0]],B=b.V[f[1]],C=b.V[f[2]];
+    let n=norm(cross(sub(B,A),sub(C,A)));
+    const cen=[(A[0]+B[0]+C[0])/3,(A[1]+B[1]+C[1])/3,(A[2]+B[2]+C[2])/3];
+    if(dot(n,cen)<0)n=[-n[0],-n[1],-n[2]];
+    if(n[2]<=0.0)return;
+    const col=[m.base[0]*m.amb[0],m.base[1]*m.amb[1],m.base[2]*m.amb[2]];
+    for(const L of m.lights){
+      const d=dot(n,L.d),w=L.wrap||0,k=Math.pow(Math.max(0,(d+w)/(1+w)),L.pow||1)*L.k;
+      for(let j=0;j<3;j++)col[j]+=m.base[j]*L.c[j]/255*k+(L.add||0)*L.c[j]*k;
+      if(L.spec){const h=norm(add(L.d,[0,0,1])),s=Math.pow(Math.max(0,dot(n,h)),L.shin||24)*L.spec;for(let j=0;j<3;j++)col[j]+=L.c[j]*s}
+    }
+    const v=1+b.shade[i]*(m.vary??0.14);
+    faces.push({z:cen[2],p:[A,B,C],c:col.map(x=>clamp(x*v,0,255))});
+  });
+  faces.sort((a,b)=>a.z-b.z);
+  ctx.save();ctx.lineJoin="round";ctx.lineWidth=Math.max(0.8,r*0.004);
+  for(const f of faces){
+    ctx.beginPath();poly(ctx,f.p.map(p=>[cx+p[0]*r,cy+p[1]*r]));
+    ctx.fillStyle=ctx.strokeStyle=css(f.c);ctx.fill();ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ------------------------------------------------------------------ lights (the moon is behind, up and to the right)
+const L_MOONRIM={d:norm([0.62,-0.62,-0.42]),c:[255,70,120],k:1.25,add:0.35,wrap:0.15,pow:1.4};
+const L_WARM={d:norm([0.45,0.25,0.85]),c:[255,165,95],k:0.95,wrap:0.1,pow:1.2,spec:0.25,shin:40};
+const L_FILL={d:norm([-0.75,0.05,0.65]),c:[150,22,48],k:0.4};
+function mat(base,seed,extra){return Object.assign({base,seed,amb:[0.16,0.05,0.08],lights:[L_MOONRIM,L_WARM,L_FILL],sub:2,jitter:0.11,vary:0.16},extra||{})}
+
+// ------------------------------------------------------------------ the sky, the blood moon, clouds, the castle
+function sky(ctx,W,H,moon){
+  let g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"#16020a");g.addColorStop(0.4,"#3e0612");g.addColorStop(0.78,"#690c1c");g.addColorStop(1,"#2c040c");
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  g=ctx.createRadialGradient(moon.x,moon.y,moon.r*0.7,moon.x,moon.y,moon.r*2.6);
+  g.addColorStop(0,"rgba(235,45,90,0.6)");g.addColorStop(0.3,"rgba(170,22,56,0.32)");g.addColorStop(1,"rgba(90,0,24,0)");
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  blotches(ctx,W,H,48,27,0.32,"soft-light");
+  blotches(ctx,W,H,160,90,0.12,"overlay");
+}
+// painterly unevenness: a tiny random picture blown up and blurred
+function blotches(ctx,W,H,w,h,a,op){
+  const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");
+  const id=x.createImageData(w,h);
+  for(let i=0;i<w*h;i++){const v=rand();id.data[i*4]=v<0.5?20:200;id.data[i*4+1]=v*40;id.data[i*4+2]=v*60;id.data[i*4+3]=255*Math.abs(v-0.5)*2}
+  x.putImageData(id,0,0);
+  ctx.save();ctx.globalCompositeOperation=op;ctx.globalAlpha=a;ctx.imageSmoothingQuality="high";ctx.filter=`blur(${W/w*0.6}px)`;ctx.drawImage(c,0,0,W,H);ctx.restore();
+}
+function moonDraw(ctx,m){
+  ctx.save();
+  let g=ctx.createRadialGradient(m.x,m.y,m.r*0.9,m.x,m.y,m.r*1.7);
+  g.addColorStop(0,"rgba(255,80,125,0.55)");g.addColorStop(0.4,"rgba(230,40,90,0.18)");g.addColorStop(1,"rgba(200,20,70,0)");
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(m.x,m.y,m.r*1.7,0,7);ctx.fill();
+  drawBall(ctx,m.x,m.y,m.r,{seed:m.seed||5,sub:3,jitter:0.045,vary:0.1,base:[222,48,92],amb:[0.5,0.42,0.48],
+    lights:[{d:norm([0.45,-0.55,0.7]),c:[255,215,225],k:0.62,wrap:0.5}]});
+  ctx.beginPath();ctx.arc(m.x,m.y,m.r*1.01,0,7);ctx.clip();
+  ctx.globalCompositeOperation="multiply";
+  const spots=[[-0.35,-0.2,0.38],[0.25,0.15,0.3],[-0.05,0.45,0.25],[0.4,-0.4,0.18],[-0.55,0.3,0.22],[0.1,-0.55,0.15],[0.6,0.35,0.2]];
+  for(const[x,y,s]of spots){g=ctx.createRadialGradient(m.x+x*m.r,m.y+y*m.r,0,m.x+x*m.r,m.y+y*m.r,s*m.r);g.addColorStop(0,"rgba(150,30,70,0.55)");g.addColorStop(1,"rgba(150,30,70,0)");ctx.fillStyle=g;ctx.fillRect(m.x-m.r,m.y-m.r,m.r*2,m.r*2)}
+  g=ctx.createLinearGradient(m.x+m.r*0.5,m.y-m.r*0.7,m.x-m.r*0.8,m.y+m.r*0.9);
+  g.addColorStop(0,"rgba(255,255,255,1)");g.addColorStop(1,"rgba(110,10,40,1)");
+  ctx.fillStyle=g;ctx.fillRect(m.x-m.r,m.y-m.r,m.r*2,m.r*2);
+  ctx.restore();
+  ctx.save();ctx.globalCompositeOperation="screen";ctx.filter=`blur(${m.r*0.02}px)`;ctx.strokeStyle="rgba(255,150,180,0.5)";ctx.lineWidth=m.r*0.02;
+  ctx.beginPath();ctx.arc(m.x,m.y,m.r*0.99,D(-150),D(60));ctx.stroke();ctx.restore();
+}
+function clouds(ctx,list){
+  for(const c of list){
+    ctx.save();ctx.filter=`blur(${c.h*0.45}px)`;ctx.fillStyle=css(c.col,c.a);
+    ctx.beginPath();ctx.ellipse(c.x,c.y,c.w,c.h,c.rot||0,0,7);ctx.fill();ctx.restore();
+  }
+}
+function castle(ctx,o){
+  const{baseY,towers,col,edge,win,moonX}=o;
+  ctx.save();ctx.fillStyle=col;
+  // curtain walls with battlements between the towers
+  if(o.wall){const[x0,x1,h]=o.wall;ctx.fillRect(x0,baseY-h,x1-x0,h+400);
+    for(let x=x0;x<x1;x+=h*0.22)ctx.fillRect(x,baseY-h-h*0.12,h*0.12,h*0.13)}
+  for(const t of towers){
+    const top=baseY-t.h,hw=t.w/2;
+    ctx.fillStyle=col;ctx.fillRect(t.x-hw,top,t.w,t.h+400);
+    ctx.fillRect(t.x-hw*1.22,top-t.w*0.1,t.w*1.22,t.w*0.14);
+    ctx.beginPath();ctx.moveTo(t.x-hw*1.18,top-t.w*0.08);ctx.lineTo(t.x,top-t.sp);ctx.lineTo(t.x+hw*1.18,top-t.w*0.08);ctx.fill();
+    ctx.fillRect(t.x-t.w*0.02,top-t.sp-t.w*0.35,t.w*0.04,t.w*0.36);
+    if(t.turret){const tx=t.x+t.turret*hw,ty=top+t.h*0.25,tw=t.w*0.32;ctx.fillRect(tx-tw/2,ty,tw,t.w*0.9);ctx.beginPath();ctx.moveTo(tx-tw*0.65,ty);ctx.lineTo(tx,ty-t.w*0.75);ctx.lineTo(tx+tw*0.65,ty);ctx.fill()}
+    if(edge){ // the side facing the moon catches its light
+      ctx.save();ctx.fillStyle=edge;const s=t.x<moonX?1:-1,ex=s>0?t.x+hw-t.w*0.06:t.x-hw;
+      ctx.fillRect(ex,top,t.w*0.06,t.h);
+      ctx.beginPath();ctx.moveTo(t.x,top-t.sp);ctx.lineTo(t.x+s*hw*1.18,top-t.w*0.08);ctx.lineTo(t.x+s*hw*0.9,top-t.w*0.08);ctx.fill();ctx.restore();
+    }
+    if(win&&t.win){
+      ctx.save();ctx.fillStyle=win;ctx.shadowColor=win;ctx.shadowBlur=t.w*0.3;
+      for(const[wx,wy]of t.win){const x=t.x+wx*hw,y=top+wy*t.h,ww=t.w*0.11,wh=t.w*0.3;
+        ctx.beginPath();ctx.moveTo(x-ww/2,y+wh);ctx.lineTo(x-ww/2,y);ctx.arc(x,y,ww/2,Math.PI,0);ctx.lineTo(x+ww/2,y+wh);ctx.fill()}
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+// ------------------------------------------------------------------ bats (VS's), wings for the bat balls
+function batWing(ctx,sx,sy,dir,span,lift,fill,bone){
+  const tip=[sx+dir*span,sy-lift],top=[sx+dir*span*0.45,sy-lift*1.25-span*0.18];
+  const p=[[sx+dir*span*0.74,sy-lift*0.35+span*0.2],[sx+dir*span*0.45,sy+span*0.16],[sx+dir*span*0.14,sy+span*0.26]];
+  ctx.beginPath();ctx.moveTo(sx,sy-span*0.05);ctx.quadraticCurveTo(top[0],top[1],tip[0],tip[1]);
+  let a=tip;for(const q of p){const mx=(a[0]+q[0])/2-dir*span*0.04,my=(a[1]+q[1])/2-span*0.1;ctx.quadraticCurveTo(mx,my,q[0],q[1]);a=q}
+  ctx.lineTo(sx,sy+span*0.12);ctx.closePath();ctx.fillStyle=fill;ctx.fill();
+  if(bone){ctx.strokeStyle=bone;ctx.lineWidth=Math.max(1,span*0.025);ctx.lineCap="round";
+    ctx.beginPath();ctx.moveTo(sx,sy);ctx.quadraticCurveTo(top[0],top[1]+span*0.08,tip[0],tip[1]);
+    for(const q of p.slice(0,2)){ctx.moveTo(sx+dir*span*0.42,sy-lift*0.75-span*0.1);ctx.lineTo(q[0],q[1])}ctx.stroke()}
+}
+function bat(ctx,x,y,s,flap,col){
+  ctx.save();
+  batWing(ctx,x-s*0.12,y,-1,s,s*flap,col);batWing(ctx,x+s*0.12,y,1,s,s*flap,col);
+  ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(x,y+s*0.08,s*0.16,s*0.24,0,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(x-s*0.14,y-s*0.1);ctx.lineTo(x-s*0.12,y-s*0.32);ctx.lineTo(x-s*0.03,y-s*0.16);ctx.lineTo(x+s*0.03,y-s*0.16);ctx.lineTo(x+s*0.12,y-s*0.32);ctx.lineTo(x+s*0.14,y-s*0.1);ctx.fill();
+  ctx.restore();
+}
+
+// ------------------------------------------------------------------ ROUNDS's pistol (the gun icon's shape), arms, smoke
+function pistol(ctx,x,y,len,ang,fill,rim){
+  ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.scale(len/22,len/22);ctx.translate(-10,-14);
+  ctx.beginPath();poly(ctx,[[5,11],[27,11],[27,16],[14,16],[12,25],[6,25],[8,16],[5,16]]);
+  ctx.fillStyle=fill;ctx.fill();
+  ctx.lineJoin="round";ctx.strokeStyle="#000";ctx.lineWidth=0.6;ctx.stroke();
+  if(rim){ctx.strokeStyle=rim;ctx.lineWidth=0.55;ctx.beginPath();ctx.moveTo(5.3,11.3);ctx.lineTo(26.7,11.3);ctx.lineTo(26.7,15.4);ctx.stroke()}
+  ctx.fillStyle="rgba(120,40,60,0.9)";ctx.fillRect(21,12,5,1.1);
+  ctx.restore();
+}
+function limb(ctx,pts,w,rim){
+  ctx.save();ctx.lineCap="round";ctx.lineJoin="round";
+  ctx.beginPath();smooth(ctx,pts,false);ctx.strokeStyle="#0a0306";ctx.lineWidth=w;ctx.stroke();
+  if(rim){ctx.beginPath();smooth(ctx,pts.map(p=>[p[0]+w*0.18,p[1]-w*0.22]),false);ctx.strokeStyle=rim;ctx.lineWidth=w*0.28;ctx.stroke()}
+  ctx.restore();
+}
+function smoke(ctx,x,y,len,s){
+  ctx.save();
+  for(let i=0;i<18;i++){const t=i/17,px=x+Math.sin(t*5.5)*len*0.12*t+len*0.08*t,py=y-len*t,r=s*(0.35+t*1.3);
+    ctx.filter=`blur(${r*0.45}px)`;ctx.fillStyle=`rgba(255,215,222,${0.5*(1-t)+0.05})`;ctx.beginPath();ctx.arc(px,py,r*1.4,0,7);ctx.fill()}
+  ctx.restore();
+}
+
+// ------------------------------------------------------------------ the characters
+// Orange, cast as the Count: slicked-back hair, glowing eyes, fangs, a high collar and a smoking pistol.
+function orangeCount(ctx,cx,cy,r,o={}){
+  const S=(u,v)=>[cx+u*r,cy+v*r];
+  let g;
+  // the cape over the shoulders, behind the ball
+  ctx.save();
+  ctx.fillStyle="#0b0206";ctx.beginPath();
+  smooth(ctx,[S(-0.9,0.75),S(-1.4,1.0),S(-1.7,1.45),S(-1.85,2.4),S(1.85,2.4),S(1.7,1.45),S(1.4,1.0),S(0.9,0.75),S(0,0.7)],true);ctx.fill();
+  ctx.lineCap="round";ctx.strokeStyle="rgba(255,70,120,0.35)";ctx.lineWidth=r*0.012;
+  ctx.beginPath();smooth(ctx,[S(1.02,0.86),S(1.42,1.02),S(1.7,1.45),S(1.8,2.2)],false);ctx.stroke();
+  // the high collar: black outside, a pleated crimson lining
+  for(const s of[-1,1]){
+    const P=(u,v)=>S(s*u*(s<0?1.05:1),v);
+    ctx.fillStyle="#070105";ctx.beginPath();
+    smooth(ctx,[P(0.35,0.95),P(0.98,0.84),P(1.38,0.38),P(1.56,-0.2),P(1.52,-0.8),P(1.3,-0.6),P(1.06,-0.4),P(0.82,-0.1),P(0.5,0.4)],true);ctx.fill();
+    const lining=[P(0.55,0.78),P(0.93,0.68),P(1.24,0.3),P(1.38,-0.17),P(1.36,-0.58),P(1.21,-0.47),P(0.99,-0.28),P(0.78,0.02)];
+    g=ctx.createLinearGradient(...P(0.9,0.5),...P(1.45,-0.55));g.addColorStop(0,"#1a0106");g.addColorStop(0.6,"#56051a");g.addColorStop(1,s>0?"#a0122f":"#6a0820");
+    ctx.fillStyle=g;ctx.beginPath();smooth(ctx,lining,true);ctx.fill();
+    ctx.save();ctx.beginPath();smooth(ctx,lining,true);ctx.clip();
+    ctx.strokeStyle="rgba(30,0,8,0.55)";ctx.lineWidth=r*0.022;
+    for(const[a,b]of[[[0.85,0.7],[1.4,-0.45]],[[0.8,0.6],[1.22,-0.42]],[[0.95,0.72],[1.5,-0.05]]]){ctx.beginPath();ctx.moveTo(...P(...a));ctx.quadraticCurveTo(...P((a[0]+b[0])/2+0.07,(a[1]+b[1])/2),...P(...b));ctx.stroke()}
+    ctx.restore();
+    ctx.strokeStyle=s>0?"rgba(255,100,150,0.9)":"rgba(255,60,100,0.4)";ctx.lineWidth=r*0.014;
+    ctx.beginPath();smooth(ctx,[P(1.3,0.5),P(1.45,0.2),P(1.56,-0.2),P(1.52,-0.78)],false);ctx.stroke();
+  }
+  ctx.restore();
+  drawBall(ctx,cx,cy,r,mat([244,118,34],o.seed||3,{vary:0.2}));
+  // shadow over the far (left) side, so the features turn with the ball
+  ctx.save();ctx.beginPath();ctx.arc(cx,cy,r*0.995,0,7);ctx.clip();
+  g=ctx.createRadialGradient(...S(0.45,0.15),r*0.2,...S(0.2,0.1),r*1.3);
+  g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(0.6,"rgba(40,0,12,0.32)");g.addColorStop(1,"rgba(20,0,8,0.88)");
+  ctx.fillStyle=g;ctx.fillRect(cx-r,cy-r,2*r,2*r);
+  for(const[u,v,s]of[[-0.3,-0.12,0.34],[0.56,-0.13,0.3]]){g=ctx.createRadialGradient(...S(u,v),0,...S(u,v),r*s);g.addColorStop(0,"rgba(40,0,10,0.75)");g.addColorStop(1,"rgba(40,0,10,0)");ctx.fillStyle=g;ctx.fillRect(cx-r,cy-r,2*r,2*r)}
+  // the scar across the left eye
+  ctx.lineCap="round";
+  for(const[a,b,w]of[[S(-0.5,-0.62),S(-0.22,0.12),0.016],[S(-0.4,-0.6),S(-0.12,0.02),0.01]]){
+    ctx.strokeStyle="rgba(60,0,12,0.75)";ctx.lineWidth=r*w*1.6;ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();
+    ctx.strokeStyle="rgba(255,150,130,0.3)";ctx.lineWidth=r*w*0.6;ctx.beginPath();ctx.moveTo(a[0]+r*0.008,a[1]);ctx.lineTo(b[0]+r*0.008,b[1]);ctx.stroke()}
+  ctx.restore();
+  // brows
+  ctx.fillStyle="#120307";
+  ctx.beginPath();smooth(ctx,[S(-0.7,-0.4),S(-0.4,-0.33),S(-0.06,-0.15),S(-0.04,-0.06),S(-0.38,-0.2),S(-0.68,-0.28)],true);ctx.fill();
+  ctx.beginPath();smooth(ctx,[S(0.82,-0.42),S(0.6,-0.34),S(0.3,-0.16),S(0.3,-0.06),S(0.6,-0.21),S(0.8,-0.3)],true);ctx.fill();
+  // glowing eyes with slit pupils
+  for(const e of[{pts:[S(-0.62,-0.24),S(-0.36,-0.16),S(-0.1,-0.04),S(-0.2,0.04),S(-0.4,0.06),S(-0.58,-0.06)],c:S(-0.33,-0.06),k:0.75},
+                 {pts:[S(0.34,-0.04),S(0.56,-0.16),S(0.76,-0.26),S(0.74,-0.08),S(0.6,0.04),S(0.42,0.04)],c:S(0.56,-0.07),k:1}]){
+    ctx.save();
+    ctx.globalCompositeOperation="lighter";
+    g=ctx.createRadialGradient(...e.c,0,...e.c,r*0.42);g.addColorStop(0,`rgba(255,150,40,${0.45*e.k})`);g.addColorStop(1,"rgba(255,60,20,0)");
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(...e.c,r*0.42,0,7);ctx.fill();
+    ctx.restore();ctx.save();
+    ctx.shadowColor="rgba(255,120,30,0.95)";ctx.shadowBlur=r*0.08*e.k;
+    g=ctx.createRadialGradient(...e.c,0,...e.c,r*0.2);g.addColorStop(0,"#fff8c8");g.addColorStop(0.35,"#ffc030");g.addColorStop(0.75,"#f05010");g.addColorStop(1,"#900a10");
+    ctx.fillStyle=g;ctx.beginPath();smooth(ctx,e.pts,true);ctx.fill();
+    ctx.shadowBlur=0;ctx.fillStyle="#1a0204";ctx.beginPath();ctx.ellipse(e.c[0],e.c[1]-r*0.01,r*0.018,r*0.065,0.15,0,7);ctx.fill();
+    ctx.restore();
+  }
+  // the scowl: an open mouth with fangs and a drip
+  const mouth=[S(-0.24,0.44),S(0.06,0.36),S(0.3,0.35),S(0.52,0.43),S(0.5,0.5),S(0.3,0.57),S(0.04,0.58),S(-0.2,0.5)];
+  ctx.save();ctx.fillStyle="#1c0206";ctx.beginPath();smooth(ctx,mouth,true);ctx.fill();ctx.clip();
+  g=ctx.createRadialGradient(...S(0.15,0.62),0,...S(0.15,0.62),r*0.2);g.addColorStop(0,"#7a0a1c");g.addColorStop(1,"rgba(60,0,10,0)");ctx.fillStyle=g;ctx.fillRect(cx-r,cy,2*r,r);
+  ctx.fillStyle="#e8d8c8";for(let i=0;i<6;i++){const u=-0.08+i*0.075;ctx.beginPath();poly(ctx,[S(u-0.03,0.3),S(u+0.03,0.3),S(u+0.022,0.42),S(u-0.022,0.42)]);ctx.fill()}
+  ctx.restore();
+  for(const[u,v,len]of[[-0.1,0.4,0.2],[0.36,0.37,0.21]]){
+    g=ctx.createLinearGradient(...S(u,v),...S(u,v+len));g.addColorStop(0,"#fffaf0");g.addColorStop(1,"#d0b8a8");
+    ctx.fillStyle=g;ctx.strokeStyle="#2a0408";ctx.lineWidth=r*0.006;
+    ctx.beginPath();ctx.moveTo(...S(u-0.045,v-0.02));ctx.quadraticCurveTo(...S(u-0.03,v+len*0.6),...S(u+0.005,v+len));ctx.quadraticCurveTo(...S(u+0.03,v+len*0.5),...S(u+0.045,v-0.02));ctx.closePath();ctx.fill();ctx.stroke();
+  }
+  ctx.fillStyle="#c00c26";ctx.beginPath();smooth(ctx,[S(0.36,0.58),S(0.38,0.64),S(0.385,0.7),S(0.365,0.73),S(0.348,0.69),S(0.352,0.62)],true);ctx.fill();
+  ctx.fillStyle="rgba(255,200,200,0.7)";ctx.beginPath();ctx.arc(...S(0.373,0.705),r*0.006,0,7);ctx.fill();
+  ctx.strokeStyle="rgba(255,160,110,0.35)";ctx.lineWidth=r*0.01;ctx.beginPath();smooth(ctx,[S(-0.1,0.62),S(0.15,0.65),S(0.42,0.6)],false);ctx.stroke();
+  // slicked-back hair with a widow's peak: strands follow the ball back toward the crown
+  const hairline=[[0.985,-0.16],[0.82,-0.34],[0.55,-0.52],[0.3,-0.5],[0.16,-0.38],[0.1,-0.26],[0.04,-0.38],[-0.12,-0.53],[-0.45,-0.58],[-0.78,-0.44],[-0.99,-0.16]];
+  const HR=1.065,hairPath=[];
+  for(let a=190;a<=350;a+=5)hairPath.push([cx+Math.cos(D(a))*r*HR,cy+Math.sin(D(a))*r*HR]);
+  for(const p of hairline)hairPath.push(S(...p));
+  ctx.save();ctx.beginPath();ctx.arc(cx,cy,r*0.99,0,7);ctx.clip();ctx.filter=`blur(${r*0.03}px)`;ctx.strokeStyle="rgba(20,0,6,0.6)";ctx.lineWidth=r*0.07;
+  ctx.beginPath();smooth(ctx,hairline.map(p=>S(p[0],p[1]+0.04)),false);ctx.stroke();ctx.restore();
+  g=ctx.createRadialGradient(...S(0.42,-0.86),0,...S(0.42,-0.86),r*1.1);g.addColorStop(0,"#4a1024");g.addColorStop(0.45,"#1e050d");g.addColorStop(1,"#080104");
+  ctx.fillStyle=g;ctx.beginPath();smooth(ctx,hairPath,true);ctx.fill();
+  ctx.save();ctx.beginPath();smooth(ctx,hairPath,true);ctx.clip();ctx.lineCap="round";ctx.lineJoin="round";
+  const pole=norm([0.08,-0.5,-0.86]),moonL=norm([0.55,-0.75,0.35]);
+  const slerp=(a,b,t)=>{const om=Math.acos(clamp(dot(a,b),-1,1)),so=Math.sin(om);return so<1e-6?a:[0,1,2].map(i=>(Math.sin((1-t)*om)*a[i]+Math.sin(t*om)*b[i])/so)};
+  const segLen=[];let tot=0;for(let i=1;i<hairline.length;i++){const l=Math.hypot(hairline[i][0]-hairline[i-1][0],hairline[i][1]-hairline[i-1][1]);segLen.push(l);tot+=l}
+  const along=t=>{let d=t*tot;for(let i=0;i<segLen.length;i++){if(d<=segLen[i]){const k=d/segLen[i];return[lerp(hairline[i][0],hairline[i+1][0],k),lerp(hairline[i][1],hairline[i+1][1],k)]}d-=segLen[i]}return hairline[hairline.length-1]};
+  const strand=t=>{
+    const[u,v]=along(t),start=norm([u,v,Math.sqrt(Math.max(0.02,1-u*u-v*v))]),pts=[];let lit=0,n=0;
+    for(let s=0;s<=1.0001;s+=0.05){const q=slerp(start,pole,s);if(q[2]<-0.03)break;const rad=lerp(1.0,HR,Math.min(1,s*4));pts.push([cx+q[0]*r*rad,cy+q[1]*r*rad]);lit+=Math.max(0,dot(q,moonL));n++}
+    return{pts,lit:n?lit/n:0};
+  };
+  const hr=mulberry32(77);
+  // broad gloss where the moon catches the hair, then loose dark and lit strands
+  ctx.save();ctx.filter=`blur(${r*0.025}px)`;
+  for(const t of[0.58,0.66,0.74,0.82,0.9]){const s=strand(t);if(s.pts.length<2)continue;ctx.strokeStyle=`rgba(255,70,130,${0.08+0.22*s.lit})`;ctx.lineWidth=r*0.06;ctx.beginPath();smooth(ctx,s.pts,false);ctx.stroke()}
+  ctx.restore();
+  for(let i=0;i<70;i++){
+    const s=strand(hr()),dark=i<40;if(s.pts.length<2)continue;const a=0.15+hr()*0.35;
+    ctx.strokeStyle=dark?`rgba(0,0,0,${a})`:`rgba(${lerp(90,255,s.lit)|0},${lerp(20,90,s.lit)|0},${lerp(40,140,s.lit)|0},${a*s.lit*1.4})`;
+    ctx.lineWidth=r*(dark?0.006+hr()*0.01:0.003+hr()*0.006);
+    ctx.beginPath();smooth(ctx,s.pts,false);ctx.stroke();
+  }
+  ctx.strokeStyle="rgba(255,95,145,0.85)";ctx.lineWidth=r*0.03;ctx.filter=`blur(${r*0.01}px)`;
+  ctx.beginPath();ctx.arc(cx,cy,r*HR,D(250),D(345));ctx.stroke();
+  ctx.restore();
+  // the gun, raised beside the head and still smoking
+  if(o.gun!==false){
+    const hand=S(1.64,0.02),ang=D(-70),len=r*0.55;
+    limb(ctx,[S(0.96,0.26),S(1.3,0.24),hand],r*0.06,"rgba(255,80,130,0.5)");
+    pistol(ctx,hand[0],hand[1],len,ang,"#0e0508","rgba(255,110,150,0.9)");
+    smoke(ctx,hand[0]+Math.cos(ang)*len*0.78,hand[1]+Math.sin(ang)*len*0.78,r*0.38,r*0.045);
+  }
+}
+
+// Blue, leaping across the moon in a cape, with ROUNDS sunglasses and a single fang.
+function blueLeap(ctx,cx,cy,r,o={}){
+  const S=(u,v)=>[cx+u*r,cy+v*r];
+  ctx.save();
+  ctx.fillStyle="#0a0208";ctx.beginPath();
+  smooth(ctx,[S(-0.2,-0.92),S(-1.0,-1.15),S(-2.0,-1.02),S(-2.9,-0.62),S(-2.68,-0.3),S(-3.05,0.12),S(-2.45,0.22),S(-2.15,0.62),S(-1.55,0.52),S(-1.05,0.82),S(-0.5,0.62)],true);ctx.fill();
+  // the crimson lining shows where the hem flips up
+  let g=ctx.createLinearGradient(...S(-0.6,0.5),...S(-2.9,0.1));g.addColorStop(0,"#3a0410");g.addColorStop(1,"#a00e2a");
+  ctx.fillStyle=g;ctx.beginPath();smooth(ctx,[S(-3.05,0.12),S(-2.45,0.22),S(-2.15,0.62),S(-1.55,0.52),S(-1.05,0.82),S(-0.5,0.62),S(-0.62,0.42),S(-1.08,0.56),S(-1.55,0.3),S(-2.12,0.36),S(-2.42,-0.02)],true);ctx.fill();
+  ctx.strokeStyle="rgba(255,110,160,0.6)";ctx.lineWidth=r*0.025;ctx.lineCap="round";ctx.beginPath();smooth(ctx,[S(-0.2,-0.95),S(-1.0,-1.15),S(-2.0,-1.02),S(-2.9,-0.62)],false);ctx.stroke();
+  ctx.restore();
+  limb(ctx,[S(-0.3,0.88),S(-0.68,1.25),S(-1.12,1.36)],r*0.075,"rgba(255,90,140,0.8)");
+  limb(ctx,[S(0.22,0.92),S(0.62,1.2),S(0.4,1.55)],r*0.075,"rgba(255,90,140,0.8)");
+  drawBall(ctx,cx,cy,r,{base:[46,125,224],seed:o.seed||9,sub:2,jitter:0.12,vary:0.2,amb:[0.3,0.3,0.42],
+    lights:[{d:norm([0.15,-0.35,-0.92]),c:[255,90,150],k:1.6,add:0.55,wrap:0.5,pow:2.2},{d:norm([-0.45,-0.2,0.86]),c:[130,165,255],k:0.6},{d:norm([0.6,0.4,0.7]),c:[255,150,120],k:0.35}]});
+  const F=(u,v)=>S(u+0.22,v-0.02);
+  ctx.save();ctx.fillStyle="#06020a";ctx.strokeStyle="#06020a";ctx.lineWidth=r*0.05;
+  for(const[a,b]of[[-0.42,-0.02],[0.1,0.5]]){ctx.beginPath();smooth(ctx,[F(a,-0.3),F(b,-0.3),F(b-0.02,-0.12),F((a+b)/2,-0.02),F(a+0.02,-0.12)],true);ctx.fill()}
+  ctx.beginPath();ctx.moveTo(...F(-0.02,-0.27));ctx.lineTo(...F(0.1,-0.27));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(...F(-0.42,-0.28));ctx.lineTo(...F(-0.62,-0.33));ctx.stroke();
+  ctx.fillStyle="rgba(255,120,170,0.75)";
+  for(const a of[-0.3,0.22]){ctx.beginPath();poly(ctx,[F(a,-0.27),F(a+0.07,-0.27),F(a-0.03,-0.08),F(a-0.08,-0.08)]);ctx.fill()}
+  ctx.fillStyle="rgba(255,200,215,0.9)";ctx.beginPath();ctx.arc(...F(0.36,-0.22),r*0.03,0,7);ctx.fill();
+  ctx.lineCap="round";ctx.strokeStyle="#06020a";ctx.lineWidth=r*0.045;ctx.beginPath();smooth(ctx,[F(-0.18,0.3),F(0.12,0.32),F(0.38,0.22),F(0.46,0.14)],false);ctx.stroke();
+  ctx.fillStyle="#f6eee6";ctx.beginPath();poly(ctx,[F(0.24,0.29),F(0.33,0.26),F(0.3,0.42)]);ctx.fill();
+  ctx.restore();
+  const hand=S(1.42,-0.2);
+  limb(ctx,[S(0.9,0.22),S(1.2,0.02),hand],r*0.07,"rgba(255,90,140,0.8)");
+  pistol(ctx,hand[0],hand[1],r*0.95,D(o.aim??-14),"#0e0508","rgba(255,120,160,0.95)");
+}
+
+// Bat balls: ROUNDS's purple and green players as the night's bats.
+function batBall(ctx,x,y,r,base,face,seed,flap=0.9){
+  ctx.save();
+  const wf="#0b0308",bone="rgba(255,90,140,0.55)";
+  batWing(ctx,x-r*0.75,y-r*0.1,-1,r*2.3,r*flap,wf,bone);batWing(ctx,x+r*0.75,y-r*0.1,1,r*2.3,r*flap,wf,bone);
+  ctx.restore();
+  drawBall(ctx,x,y,r,mat(base,seed,{sub:1,jitter:0.15,amb:[0.22,0.12,0.18]}));
+  const S=(u,v)=>[x+u*r,y+v*r];
+  ctx.save();ctx.lineCap="round";ctx.lineJoin="round";
+  if(face==="grump"){ // purple: angry slanted eyes
+    for(const s of[-1,1]){ctx.fillStyle="#f4e8f0";ctx.beginPath();poly(ctx,[S(s*0.12,-0.05),S(s*0.5,-0.22),S(s*0.48,0.08),S(s*0.18,0.1)]);ctx.fill();
+      ctx.fillStyle="#1a0410";ctx.beginPath();ctx.arc(...S(s*0.3,0.02),r*0.08,0,7);ctx.fill()}
+    ctx.strokeStyle="#1a0410";ctx.lineWidth=r*0.07;ctx.beginPath();ctx.moveTo(...S(-0.25,0.42));ctx.quadraticCurveTo(...S(0,0.3),...S(0.25,0.42));ctx.stroke();
+  }else{ // green: ROUNDS's droopy sad eyes
+    ctx.strokeStyle="#0a1a06";ctx.lineWidth=r*0.08;
+    for(const s of[-1,1]){ctx.beginPath();ctx.moveTo(...S(s*0.12,-0.05));ctx.quadraticCurveTo(...S(s*0.32,0.08),...S(s*0.52,0.0));ctx.stroke()}
+    ctx.beginPath();ctx.moveTo(...S(-0.22,0.4));ctx.quadraticCurveTo(...S(0,0.3),...S(0.22,0.4));ctx.stroke();
+    ctx.fillStyle="rgba(120,200,255,0.8)";ctx.beginPath();ctx.ellipse(...S(0.42,0.22),r*0.05,r*0.09,0,0,7);ctx.fill();
+  }
+  ctx.fillStyle="#fff";for(const s of[-1,1]){ctx.beginPath();poly(ctx,[S(s*0.13-0.05,0.36),S(s*0.13+0.05,0.36),S(s*0.13,0.52)]);ctx.fill()}
+  ctx.restore();
+}
+
+// ------------------------------------------------------------------ the title: VS's gold over ROUNDS's chunky letters
+function goldGrad(ctx,y0,y1){const g=ctx.createLinearGradient(0,y0,0,y1);g.addColorStop(0,"#fff6c8");g.addColorStop(0.3,"#ffd862");g.addColorStop(0.62,"#e89a26");g.addColorStop(1,"#8c3e0a");return g}
+function title(ctx,cx,y,s){
+  ctx.save();ctx.textBaseline="alphabetic";ctx.lineJoin="round";
+  // VAMPIRE
+  ctx.font=`900 ${s}px Cinzel, Georgia, serif`;ctx.letterSpacing=`${s*0.04}px`;ctx.textAlign="center";
+  const vY=y;
+  ctx.shadowColor="rgba(255,110,30,0.75)";ctx.shadowBlur=s*0.35;ctx.fillStyle="rgba(255,140,40,0.5)";ctx.fillText("VAMPIRE",cx,vY);ctx.shadowBlur=0;
+  ctx.strokeStyle="#1a0206";ctx.lineWidth=s*0.1;ctx.strokeText("VAMPIRE",cx,vY);
+  ctx.fillStyle="#fff8dc";ctx.fillText("VAMPIRE",cx,vY-s*0.025);
+  ctx.fillStyle=goldGrad(ctx,vY-s*0.72,vY);ctx.fillText("VAMPIRE",cx,vY);
+  // ROUNDS, its O a faceted ball with ROUNDS's droopy face and two fangs
+  const s2=s*1.42,rY=vY+s2*0.98;
+  ctx.font=`${s2}px "Lilita One", "Arial Black", sans-serif`;ctx.letterSpacing="0px";ctx.textAlign="left";
+  const wR=ctx.measureText("R").width,wU=ctx.measureText("UNDS").width,oR=s2*0.39,gap=s2*0.035;
+  const total=wR+gap*2+oR*2+wU,x0=cx-total/2,oX=x0+wR+gap+oR,oY=rY-s2*0.355;
+  const parts=[["R",x0],["UNDS",x0+wR+gap*2+oR*2]];
+  ctx.shadowColor="rgba(255,110,30,0.7)";ctx.shadowBlur=s*0.35;ctx.fillStyle="rgba(255,140,40,0.5)";for(const[t,x]of parts)ctx.fillText(t,x,rY);
+  ctx.beginPath();ctx.arc(oX,oY,oR,0,7);ctx.fill();ctx.shadowBlur=0;
+  ctx.strokeStyle="#1a0206";ctx.lineWidth=s2*0.12;for(const[t,x]of parts)ctx.strokeText(t,x,rY);
+  ctx.beginPath();ctx.arc(oX,oY,oR*1.02,0,7);ctx.lineWidth=s2*0.12;ctx.stroke();
+  ctx.fillStyle="#fff8dc";for(const[t,x]of parts)ctx.fillText(t,x,rY-s2*0.025);
+  ctx.fillStyle=goldGrad(ctx,rY-s2*0.72,rY);for(const[t,x]of parts)ctx.fillText(t,x,rY);
+  drawBall(ctx,oX,oY,oR,{base:[255,196,60],seed:21,sub:1,jitter:0.12,vary:0.16,amb:[0.55,0.45,0.4],
+    lights:[{d:norm([-0.3,-0.6,0.75]),c:[255,250,220],k:0.75,wrap:0.3,spec:0.35,shin:18},{d:norm([0.5,0.6,-0.3]),c:[255,90,40],k:0.6,wrap:0.2}]});
+  const S=(u,v)=>[oX+u*oR,oY+v*oR];
+  ctx.lineCap="round";ctx.strokeStyle="#3a1004";ctx.fillStyle="#3a1004";ctx.lineWidth=oR*0.11;
+  for(const sgn of[-1,1]){ctx.beginPath();ctx.moveTo(...S(sgn*0.12,-0.12));ctx.quadraticCurveTo(...S(sgn*0.33,0.02),...S(sgn*0.56,-0.06));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(...S(sgn*0.18,-0.3));ctx.lineTo(...S(sgn*0.5,-0.36));ctx.stroke()}
+  ctx.beginPath();ctx.moveTo(...S(-0.26,0.46));ctx.quadraticCurveTo(...S(0,0.3),...S(0.26,0.46));ctx.stroke();
+  ctx.fillStyle="#fffaf0";ctx.strokeStyle="#3a1004";ctx.lineWidth=oR*0.03;
+  for(const sgn of[-1,1]){ctx.beginPath();poly(ctx,[S(sgn*0.16-0.06,0.38),S(sgn*0.16+0.06,0.38),S(sgn*0.16,0.58)]);ctx.fill();ctx.stroke()}
+  ctx.fillStyle="#c00c26";ctx.beginPath();ctx.ellipse(...S(0.17,0.66),oR*0.035,oR*0.06,0,0,7);ctx.fill();
+  ctx.restore();
+}
+
+// ------------------------------------------------------------------ finishing: embers, fog, vignette, bloom, grain
+function embers(ctx,W,H,n,box){
+  ctx.save();
+  for(let i=0;i<n;i++){const x=rr(box[0],box[2]),y=rr(box[1],box[3]),s=rr(1,4.5)*W/1920,big=rand()<0.08;
+    ctx.globalCompositeOperation="lighter";
+    if(big){ctx.filter=`blur(${s*3}px)`;ctx.fillStyle=`rgba(255,120,60,${rr(0.08,0.18)})`;ctx.beginPath();ctx.arc(x,y,s*6,0,7);ctx.fill();ctx.filter="none"}
+    else{ctx.shadowColor="rgba(255,120,40,0.9)";ctx.shadowBlur=s*4;ctx.fillStyle=`rgba(255,${(150+rand()*90)|0},90,${rr(0.4,0.95)})`;ctx.beginPath();ctx.arc(x,y,s,0,7);ctx.fill()}
+  }
+  ctx.restore();
+}
+function fog(ctx,W,H,y,h,a){
+  const g=ctx.createLinearGradient(0,y,0,y+h);g.addColorStop(0,"rgba(120,12,36,0)");g.addColorStop(0.6,`rgba(140,16,42,${a})`);g.addColorStop(1,`rgba(90,6,24,${a})`);
+  ctx.fillStyle=g;ctx.fillRect(0,y,W,h);
+}
+function finish(ctx,W,H,o={}){
+  // bloom: the bright parts, blurred and screened back
+  const b=document.createElement("canvas");b.width=W/4;b.height=H/4;const bx=b.getContext("2d");
+  bx.filter="brightness(0.75) contrast(2.6) saturate(1.3)";bx.drawImage(ctx.canvas,0,0,b.width,b.height);
+  ctx.save();ctx.globalCompositeOperation="screen";ctx.globalAlpha=o.bloom??0.45;ctx.filter=`blur(${W*0.008}px)`;ctx.drawImage(b,0,0,W,H);ctx.restore();
+  // grade toward VS's crimson
+  ctx.save();ctx.globalCompositeOperation="soft-light";ctx.fillStyle="rgba(200,20,50,0.2)";ctx.fillRect(0,0,W,H);ctx.restore();
+  const g=ctx.createRadialGradient(W*0.55,H*0.45,H*0.35,W*0.5,H*0.5,W*0.72);
+  g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,`rgba(12,0,4,${o.vignette??0.78})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const id=ctx.getImageData(0,0,W,H),d=id.data,gr=o.grain??11;
+  for(let i=0;i<d.length;i+=4){const n=(rand()-0.5)*gr;d[i]+=n;d[i+1]+=n;d[i+2]+=n}
+  ctx.putImageData(id,0,0);
+}
+
+// ------------------------------------------------------------------ scenes
+const SCENES={
+  // The game card (Melty's listing, 16:9): the cover's layout, Orange's Count on the left, the title under the moon.
+  card(ctx,W,H){
+    rand=mulberry32(11);
+    const moon={x:1390,y:330,r:315,seed:5};
+    sky(ctx,W,H,moon);
+    moonDraw(ctx,moon);
+    clouds(ctx,[{x:1300,y:560,w:520,h:26,col:[70,4,20],a:0.75},{x:1500,y:600,w:420,h:18,col:[60,2,16],a:0.7},{x:1180,y:180,w:260,h:12,col:[90,8,30],a:0.4},{x:1640,y:470,w:300,h:14,col:[80,6,24],a:0.55}]);
+    for(const[x,y,s,f]of[[1010,120,26,0.7],[1120,70,18,1.0],[1640,260,18,0.5],[1840,60,16,0.9],[1240,40,14,0.6],[1680,610,14,0.8],[180,110,22,0.8],[330,50,14,0.5],[80,290,16,1.0]])bat(ctx,x,y,s,f,"#14030a");
+    castle(ctx,{baseY:1080,col:"#2c0410",edge:"rgba(255,80,120,0.22)",moonX:moon.x,
+      towers:[{x:1180,w:60,h:430,sp:150},{x:1290,w:44,h:500,sp:120},{x:1560,w:54,h:480,sp:140},{x:1660,w:40,h:420,sp:110}],wall:[1100,1720,330]});
+    castle(ctx,{baseY:1080,col:"#090105",edge:"rgba(255,80,130,0.5)",win:"#ffae40",moonX:moon.x,
+      towers:[{x:1862,w:96,h:720,sp:260,turret:-1.1,win:[[0,0.12],[0.2,0.4]]},{x:1720,w:70,h:470,sp:170,win:[[0,0.2]]},{x:1095,w:70,h:330,sp:150,win:[[0.1,0.25]]},{x:1440,w:62,h:300,sp:120}],wall:[1050,1920,210]});
+    batBall(ctx,1105,236,34,[160,80,215],"grump",31,0.9);
+    batBall(ctx,1730,150,34,[110,225,80],"sad",32,0.6);
+    blueLeap(ctx,1480,310,96,{aim:-30});
+    fog(ctx,W,H,700,380,0.55);
+    orangeCount(ctx,560,655,410);
+    title(ctx,1462,858,126);
+    embers(ctx,W,H,90,[0,0,W,H]);
+    finish(ctx,W,H);
+  },
+  // The adventure's menu backdrop in VS (16:9). VS shows it in its 16:10 view (x 5%..95%) and its menu panel covers the
+  // middle (x 29%..71%, from y 10%): the moon's crown fills the top band, the Count stands in the open right strip
+  // (between the Characters box and the Start button), Blue leaps low on the left.
+  bg(ctx,W,H){
+    rand=mulberry32(23);
+    const moon={x:960,y:330,r:470,seed:6};
+    sky(ctx,W,H,moon);
+    moonDraw(ctx,moon);
+    clouds(ctx,[{x:960,y:650,w:900,h:30,col:[70,4,20],a:0.7},{x:700,y:700,w:600,h:20,col:[60,2,16],a:0.6},{x:1250,y:150,w:300,h:14,col:[90,8,30],a:0.4},{x:1600,y:420,w:260,h:12,col:[80,6,24],a:0.5}]);
+    for(const[x,y,s,f]of[[260,60,22,0.7],[420,150,16,1.0],[1500,60,20,0.5],[1800,360,16,0.9],[640,40,14,0.6],[1380,50,14,0.8],[140,520,14,0.9],[1460,330,12,0.7]])bat(ctx,x,y,s,f,"#14030a");
+    castle(ctx,{baseY:1080,col:"#2c0410",edge:"rgba(255,80,120,0.22)",moonX:moon.x,
+      towers:[{x:150,w:60,h:430,sp:150},{x:470,w:50,h:380,sp:130},{x:1440,w:54,h:420,sp:140},{x:1800,w:44,h:500,sp:150}],wall:[0,1920,260]});
+    castle(ctx,{baseY:1080,col:"#090105",edge:"rgba(255,80,130,0.5)",win:"#ffae40",moonX:moon.x,
+      towers:[{x:130,w:84,h:600,sp:230,turret:1.1,win:[[0,0.12],[0.2,0.4]]},{x:520,w:64,h:300,sp:130,win:[[0,0.25]]},{x:1400,w:66,h:330,sp:150,win:[[0.1,0.25]]},{x:1810,w:78,h:520,sp:210,turret:-1.1,win:[[0,0.15]]}],wall:[0,1920,170]});
+    batBall(ctx,540,64,26,[160,80,215],"grump",31,0.9);
+    batBall(ctx,1660,70,26,[110,225,80],"sad",32,0.6);
+    fog(ctx,W,H,760,320,0.5);
+    blueLeap(ctx,370,770,108);
+    orangeCount(ctx,1590,650,200,{gun:false});
+    embers(ctx,W,H,70,[0,0,W,H]);
+    finish(ctx,W,H,{grain:0,bloom:0.4});
+  },
+};
+
+async function main(){
+  const p=new URLSearchParams(location.search),outs=(p.get("out")||"card").split(","),show=p.has("show");
+  const W=+(p.get("w")||1920),H=+(p.get("h")||1080);
+  try{await Promise.all([document.fonts.load('900 100px Cinzel'),document.fonts.load('100px "Lilita One"')])}catch(e){}
+  const status=document.createElement("pre");status.id="status";
+  status.textContent="fonts "+(document.fonts.check('900 100px Cinzel')&&document.fonts.check('100px "Lilita One"')?"ok":"missing");
+  for(const name of outs){
+    const c=document.createElement("canvas");c.width=W;c.height=H;const ctx=c.getContext("2d");
+    ctx.scale(W/1920,H/1080);
+    try{SCENES[name](ctx,1920,1080)}catch(e){status.textContent+="\n"+name+": "+e.stack}
+    if(show)document.body.appendChild(c);
+    else{const pre=document.createElement("pre");pre.id="png-"+name;pre.textContent=c.toDataURL("image/png");document.body.appendChild(pre)}
+  }
+  document.body.appendChild(status);
+}
+main();
+</script>
+</body>
+</html>

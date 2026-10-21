@@ -4,7 +4,7 @@ using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(VampireRounds.InteropFix.Plugin), "Vampire Rounds interop fix", "0.1.1", "Vampire Rounds contributors")]
+[assembly: MelonInfo(typeof(VampireRounds.InteropFix.Plugin), "Vampire Rounds interop fix", "0.2.0", "Vampire Rounds contributors")]
 [assembly: MelonGame("poncle", "Vampire Survivors")]
 
 namespace VampireRounds.InteropFix

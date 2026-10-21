@@ -11,9 +11,11 @@ namespace VampireRounds.Vs
     /// </summary>
     public static class RawImage
     {
-        /// <summary>The engine draws portraits at 256 px; VS's sprite of Orange or Blue is a quarter of that (VS characters
-        /// are about 32 px tall, the ROUNDS body is about 26 px of it).</summary>
-        public const int PortraitSize = 64;
+        /// <summary>The engine draws portraits at 240 px, framed tightly around the ROUNDS player and its gun; VS's sprite of
+        /// Orange Guy or Blue Guy is a sixth of that. VS sizes a character's picture by its pixels (3.2 UI units a pixel in
+        /// character select, where a tile is 190 units; its own heroes are about 32 px): 40 px is 128 units there, and
+        /// 0.4 units in a run.</summary>
+        public const int PortraitSize = 40;
 
         public static string PortraitFile(int seat) => Path.Combine(Paths.DataDir(), "portraits", "seat" + seat + ".rgba");
 
