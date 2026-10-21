@@ -8,6 +8,7 @@ using Il2CppI2.Loc;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppNewtonsoft.Json.Linq;
+using Il2CppVampireSurvivors.Achievements;
 using Il2CppVampireSurvivors.App.Data.Adventures;
 using Il2CppVampireSurvivors.App.Scripts.Framework.Adventures;
 using Il2CppVampireSurvivors.App.Scripts.UI;
@@ -26,9 +27,9 @@ using CharacterController = Il2CppVampireSurvivors.Objects.Characters.CharacterC
 namespace VampireRounds.Vs
 {
     /// <summary>
-    /// The Vampire Rounds adventure, its stage, Orange and Blue and their texts and pictures, put into VS's own data
-    /// (sheets: adventure, stages, characters, texts; hooks h_adventure_*, h_character*, h_weapon_prefab). The stage is the
-    /// player's own Mad Forest data, copied in memory under a free adventure stage slot; nothing is written to VS's files.
+    /// The Vampire Rounds adventure, its stages, Orange and Blue and their texts and pictures, put into VS's own data
+    /// (sheets: adventure, stages, characters, texts; hooks h_adventure_*, h_character*, h_weapon_prefab). Each stage is the
+    /// player's own data of a VS main stage, copied in memory under a free adventure stage slot; nothing is written to VS's files.
     /// </summary>
     public static class Content
     {
@@ -45,6 +46,11 @@ namespace VampireRounds.Vs
         private static readonly Texture2D[] portraitTex = new Texture2D[ArenaLink.Seats];
         private static readonly DateTime[] portraitStamp = new DateTime[ArenaLink.Seats];
         public static bool AdventureInData { get; private set; }
+        /// <summary>Developers (VAMPIREROUNDS_DEV_ALLSTAGES, never set for players): every stage open from the start.</summary>
+        private static readonly bool DevAllStages = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VAMPIREROUNDS_DEV_ALLSTAGES"));
+        /// <summary>Developers (VAMPIREROUNDS_DEV_GOALMINUTES, never set for players): every goal met after this many minutes,
+        /// to see a stage open without playing ten minutes.</summary>
+        private static readonly int DevGoalMinutes = int.TryParse(Environment.GetEnvironmentVariable("VAMPIREROUNDS_DEV_GOALMINUTES"), out var gm) ? gm : 0;
         private static bool missingLogged, presentLogged;
 
         /// <summary>VS is in the Vampire Rounds adventure (its menus or a run).</summary>
@@ -86,8 +92,10 @@ namespace VampireRounds.Vs
                     var first = arr[0].AsObject();
                     first["stageKey"] = row.Slot;
                     first["tilesetStageType"] = row.VsStage;
+                    first["stageName"] = row.Name;
+                    first["description"] = row.Description;
                     first["hidden"] = false;
-                    first["unlocked"] = row.UnlockedBy == "start";
+                    first["unlocked"] = row.UnlockedBy == "start" || DevAllStages;
                     first["order"] = row.Order;
                     first["stageNumber"] = "Chapter " + row.Order;
                     first["frameNameUnlock"] = "icon_chapter" + Math.Min(row.Order, 6);
@@ -112,8 +120,7 @@ namespace VampireRounds.Vs
                 gun.Add(JsonNode.Parse(lvl1.ToJsonString()));
                 dm._allWeaponDataJson[GunSlot.ToString()] = JArray.Parse(gun.ToJsonString());
                 // The adventure. Its roster names a stand-in until Orange and Blue have runtime types (FixAdventure).
-                string first0 = Sheets.Stages.OrderBy(r => r.Order).First().Slot;
-                var stage1 = Sheets.Stages.OrderBy(r => r.Order).First();
+                string first0 = Sheets.Stages.First(r => r.UnlockedBy == "start").Slot;
                 var json = new JsonObject
                 {
                     ["progressKey"] = adv.ProgressKey,
@@ -130,19 +137,7 @@ namespace VampireRounds.Vs
                     ["CHARACTER_DATA"] = new JsonArray(JsonValue.Create("ANTONIO")),
                     ["STAGE_DATA"] = setKey,
                     ["WEAPON_DATA"] = new JsonArray(JsonValue.Create(GunSlot.ToString())),
-                    ["PROGRESS_DATA"] = new JsonArray(new JsonObject
-                    {
-                        ["description"] = stage1.Goal,
-                        ["goldPrize"] = 1000,
-                        ["adventureUnlockData"] = new JsonObject
-                        {
-                            ["Type"] = "TEST001_ACH001",
-                            ["iconTextureName"] = "UI",
-                            ["iconSpriteName"] = "icon_chapter2",
-                            ["requiredMinute"] = 10,
-                            ["requiredStage"] = first0,
-                        },
-                    }),
+                    ["PROGRESS_DATA"] = ProgressJson(),
                 };
                 dm._allAdventuresJson[advKey] = JObject.Parse(json.ToJsonString());
                 AdventureInData = true;
@@ -150,6 +145,52 @@ namespace VampireRounds.Vs
                 TestMode.Mark("adventure-listed");
             }
             catch (Exception e) { Mod.Warn("content: adventure data: " + e); }
+        }
+
+        /// <summary>
+        /// The adventure's goals, as VS's own adventures have them: each stage's goal (survive its minutes there) gives its
+        /// gold and opens the stage that follows on the adventure's stage list; the last stage's goal completes the adventure.
+        /// VS checks them itself and shows what a run unlocked at its end.
+        /// </summary>
+        private static JsonArray ProgressJson()
+        {
+            var goals = new JsonArray();
+            foreach (var row in Sheets.Stages.OrderBy(r => r.Order))
+            {
+                var next = Sheets.Stages.FirstOrDefault(r => r.UnlockedBy == row.Id);
+                var goal = new JsonObject
+                {
+                    ["description"] = row.Goal,
+                    ["goldPrize"] = row.GoalGold,
+                    ["adventureUnlockData"] = new JsonObject
+                    {
+                        ["Type"] = row.GoalType,
+                        ["iconTextureName"] = "UI",
+                        ["iconSpriteName"] = next != null ? "icon_chapter" + Math.Min(next.Order, 6) : "icon_chapterFinal",
+                        ["requiredMinute"] = DevGoalMinutes > 0 ? DevGoalMinutes : row.GoalMinutes,
+                        ["requiredStage"] = row.Slot,
+                    },
+                };
+                if (next != null) goal["stageToUnlock"] = next.Slot;
+                goals.Add(goal);
+            }
+            return goals;
+        }
+
+        [HarmonyPatch(typeof(AchievementData), nameof(AchievementData.GetLocalizedDescription), new[] { typeof(AdventureAchievementType) })]
+        public static class GoalTextPatch
+        {
+            public static void Postfix(AdventureAchievementType type, ref string __result) => GoalText(type, ref __result);
+        }
+
+        /// <summary>A goal's text in the Vampire Rounds adventure is its own (sheets/stages.json goal): VS looks goal texts up
+        /// by their progress type, and some of the adventure's types are other adventures' too, whose texts stay theirs.</summary>
+        public static void GoalText(AdventureAchievementType type, ref string result)
+        {
+            if (!InOurAdventure) return;
+            string name = type.ToString();
+            foreach (var row in Sheets.Stages)
+                if (row.GoalType == name) { result = row.Goal; return; }
         }
 
         [HarmonyPatch(typeof(DataManager), nameof(DataManager.LoadDataFromJson))]
@@ -345,7 +386,7 @@ namespace VampireRounds.Vs
             rt.localScale = Vector3.one;
         }
 
-        private static string ArtDir => Path.Combine(MelonLoader.Utils.MelonEnvironment.UserDataDirectory, "VampireRounds", "art");
+        public static string ArtDir => Path.Combine(MelonLoader.Utils.MelonEnvironment.UserDataDirectory, "VampireRounds", "art");
 
         /// <summary>VS has no backdrop for a new adventure (it gives an empty white one): the adventure's card, its list
         /// preview and the completed popup get Vampire Rounds's own (A Garlic Paradise's if the picture is missing).</summary>
@@ -487,7 +528,9 @@ namespace VampireRounds.Vs
             public static void Postfix(AdventureManager __instance, AdventureType adventureType) => BothHeroes(__instance, adventureType);
         }
 
-        /// <summary>Orange and Blue are both playable from the start of the adventure (a second player takes the other).</summary>
+        /// <summary>Orange and Blue are both playable from the start of the adventure (a second player takes the other).
+        /// A goal met before it opened a stage (0.1.x and 0.2.0 had one stage, and its goal opened nothing) opens it now,
+        /// as VS would have: VS never checks a goal it already counts as met.</summary>
         public static void BothHeroes(AdventureManager am, AdventureType type)
         {
             if (type != Adventure) return;
@@ -499,6 +542,20 @@ namespace VampireRounds.Vs
                 {
                     if (pod.UnlockedCharacters != null && !pod.UnlockedCharacters.Contains(t)) pod.UnlockedCharacters.Add(t);
                     if (pod.BoughtCharacters != null && !pod.BoughtCharacters.Contains(t)) pod.BoughtCharacters.Add(t);
+                }
+                if (pod.AdventureProgress == null || pod.UnlockedStages == null) return;
+                foreach (var row in Sheets.Stages)
+                {
+                    var before = Array.Find(Sheets.Stages, r => r.Id == row.UnlockedBy);
+                    if (before == null) continue;
+                    AdventureAchievementType goal;
+                    StageType slot;
+                    if (!Enum.TryParse(before.GoalType, out goal) || !Enum.TryParse(row.Slot, out slot)) continue;
+                    if (pod.AdventureProgress.Contains(goal) && !pod.UnlockedStages.Contains(slot))
+                    {
+                        pod.UnlockedStages.Add(slot);
+                        Mod.Log("content: " + row.Name + " opens (the " + before.Name + " goal was met before it opened a stage)");
+                    }
                 }
             }
             catch (Exception e) { Mod.Once("content: heroes", e); }
@@ -557,6 +614,23 @@ namespace VampireRounds.Vs
                     var td = src.GetTermData(term, false) ?? src.AddTerm(term);
                     for (int k = 0; k < src.mLanguages.Count; k++) td.SetTranslation(k, t[1], null);
                     n++;
+                }
+                // Each stage's name, description and tips, under its own slot (stageLang/{slot}...): no VS stage uses the slots.
+                foreach (var row in Sheets.Stages)
+                {
+                    foreach (var kv in new[]
+                    {
+                        new[] { "stageName", row.Name },
+                        new[] { "description", row.Description },
+                        new[] { "tips", "Level-ups and some treasure chests are ROUNDS card picks. Right mouse or Space blocks. " + row.Goal },
+                        new[] { "hyperTips", "50% Gold bonus" },
+                    })
+                    {
+                        string term = "stageLang/{" + row.Slot + "}" + kv[0];
+                        var td = src.GetTermData(term, false) ?? src.AddTerm(term);
+                        for (int k = 0; k < src.mLanguages.Count; k++) td.SetTranslation(k, kv[1], null);
+                        n++;
+                    }
                 }
                 src.UpdateDictionary(true);
                 Mod.Log("content: " + n + " texts added");

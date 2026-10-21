@@ -92,6 +92,23 @@ namespace VampireRounds.Vs
             return r != null ? Mathf.Max(0.05f, Mathf.Min(r.bounds.extents.x, r.bounds.extents.y)) : 0.12f;
         }
 
+        /// <summary>Which way is away from the enemies within range (each pushes harder the closer it is); zero when none.</summary>
+        public static Vector2 Away(Vector2 from, float range)
+        {
+            Vector2 sum = Vector2.zero;
+            float r2 = range * range;
+            foreach (var s in seen)
+            {
+                if (s.e == null || s.e.IsDead) continue;
+                Vector3 p = s.e._cachedTransform.position;
+                Vector2 d = from - new Vector2(p.x, p.y);
+                float m = d.sqrMagnitude;
+                if (m > r2 || m < 1e-6f) continue;
+                sum += d / m;
+            }
+            return sum;
+        }
+
         public static EnemyController Nearest(Vector2 from, float range)
         {
             EnemyController best = null;

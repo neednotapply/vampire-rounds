@@ -7,3 +7,4 @@ __pycache__/
 attachments/
 media/shots/seq/
 *.rgba
+media/dev-*.png

@@ -11,8 +11,8 @@ namespace VampireRounds.Vs
 
     public sealed class StageRow
     {
-        public string Id, Slot, VsStage, UnlockedBy, Goal;
-        public int Order, Minutes;
+        public string Id, Slot, VsStage, Name, Description, UnlockedBy, GoalType, Goal;
+        public int Order, Minutes, GoalMinutes, GoalGold;
     }
 
     public sealed class AdventureRow
@@ -25,24 +25,23 @@ namespace VampireRounds.Vs
     public static class Sheets
     {
         public static readonly CharacterRow[] Characters = {
-            new CharacterRow { Id = "orange", Seat = 0, VsName = "Orange Guy", Surname = "none", Description = "ROUNDS's orange player with ROUNDS's gun. Every level-up is a ROUNDS card pick.", Color = "F47A21", BasePrefab = "ANTONIO", Folder = "VampireRounds_Orange", WalkFrames = 1, MaxHp = 100.0f, MoveSpeed = 1.0f, Growth = 1.5f },
-            new CharacterRow { Id = "blue", Seat = 1, VsName = "Blue Guy", Surname = "none", Description = "ROUNDS's blue player with ROUNDS's gun. Every level-up is a ROUNDS card pick.", Color = "2E7DE0", BasePrefab = "ANTONIO", Folder = "VampireRounds_Blue", WalkFrames = 1, MaxHp = 100.0f, MoveSpeed = 1.0f, Growth = 1.5f },
+            new CharacterRow { Id = "orange", Seat = 0, VsName = "Orange Guy", Surname = "none", Description = "ROUNDS's orange player with ROUNDS's gun. Every level-up is a ROUNDS card pick.", Color = "F47A21", BasePrefab = "ANTONIO", Folder = "VampireRounds_Orange", WalkFrames = 1, MaxHp = 70.0f, MoveSpeed = 1.0f, Growth = 0.8f },
+            new CharacterRow { Id = "blue", Seat = 1, VsName = "Blue Guy", Surname = "none", Description = "ROUNDS's blue player with ROUNDS's gun. Every level-up is a ROUNDS card pick.", Color = "2E7DE0", BasePrefab = "ANTONIO", Folder = "VampireRounds_Blue", WalkFrames = 1, MaxHp = 70.0f, MoveSpeed = 1.0f, Growth = 0.8f },
         };
         public static readonly StageRow[] Stages = {
-            new StageRow { Id = "mad_forest", Order = 1, Slot = "TEST", VsStage = "FOREST", UnlockedBy = "start", Minutes = 30, Goal = "Survive 10 minutes in the Mad Forest as Orange or Blue." },
+            new StageRow { Id = "mad_forest", Order = 1, Slot = "TEST", VsStage = "FOREST", Name = "Mad Forest", Description = "Two ROUNDS blobs wander into the Mad Forest. Pick your cards, build your gun, survive.", UnlockedBy = "start", Minutes = 30, GoalMinutes = 10, GoalType = "TEST001_ACH001", Goal = "Survive 10 minutes in the Mad Forest.", GoalGold = 1000 },
+            new StageRow { Id = "inlaid_library", Order = 2, Slot = "TESTONE", VsStage = "LIBRARY", Name = "Inlaid Library", Description = "Endless shelves and everything that crawls between them. The library runs sideways forever.", UnlockedBy = "mad_forest", Minutes = 30, GoalMinutes = 10, GoalType = "MS001_ACH019", Goal = "Survive 10 minutes in the Inlaid Library.", GoalGold = 1000 },
+            new StageRow { Id = "dairy_plant", Order = 3, Slot = "ADV_0001TEST", VsStage = "WAREHOUSE", Name = "Dairy Plant", Description = "Pipes, tanks and the night shift. Mind the dark corners of the old plant.", UnlockedBy = "inlaid_library", Minutes = 30, GoalMinutes = 10, GoalType = "POES_ACH012", Goal = "Survive 10 minutes in the Dairy Plant.", GoalGold = 1500 },
+            new StageRow { Id = "gallo_tower", Order = 4, Slot = "ENTRANCE", VsStage = "TOWER", Name = "Gallo Tower", Description = "One long way up. The tower runs up and down forever and the horde comes from both ends.", UnlockedBy = "dairy_plant", Minutes = 30, GoalMinutes = 10, GoalType = "POES_ACH013", Goal = "Survive 10 minutes in Gallo Tower.", GoalGold = 1500 },
+            new StageRow { Id = "cappella_magna", Order = 5, Slot = "CASTLE", VsStage = "CHAPEL", Name = "Cappella Magna", Description = "The great chapel at the end of the night. Last stop of the Vampire Rounds adventure.", UnlockedBy = "gallo_tower", Minutes = 30, GoalMinutes = 15, GoalType = "POES_ACH014", Goal = "Survive 15 minutes in Cappella Magna.", GoalGold = 3000 },
         };
         public static readonly AdventureRow[] Adventures = {
-            new AdventureRow { Id = "ADV_LIB_001", Name = "Vampire Rounds", Description = "ROUNDS's Orange Guy and Blue Guy fight Vampire Survivors's night with ROUNDS's gun and ROUNDS cards.", ProgressKey = "VampireRoundsMelty", StartingCharacter = "orange", Characters = new[] { "orange", "blue" }, Stages = new[] { "mad_forest" }, StartingCoins = 2000, CompletionCoins = 5000 },
+            new AdventureRow { Id = "ADV_LIB_001", Name = "Vampire Rounds", Description = "ROUNDS's Orange Guy and Blue Guy fight Vampire Survivors's night with ROUNDS's gun and ROUNDS cards, through its five main stages.", ProgressKey = "VampireRoundsMelty", StartingCharacter = "orange", Characters = new[] { "orange", "blue" }, Stages = new[] { "mad_forest", "inlaid_library", "dairy_plant", "gallo_tower", "cappella_magna" }, StartingCoins = 2000, CompletionCoins = 5000 },
         };
         /// <summary>Texts added to VS's localisation (sheets/texts.json): term, English.</summary>
         public static readonly string[][] Texts = {
             new[] { "adventureLang/{ADV_LIB_001}header", "Vampire Rounds" },
             new[] { "adventureLang/{ADV_LIB_001}description", "ROUNDS's Orange Guy and Blue Guy fight the night with ROUNDS's gun. Every level-up is a ROUNDS card." },
-            new[] { "stageLang/{TEST}stageName", "Mad Forest" },
-            new[] { "stageLang/{TEST}description", "Two ROUNDS blobs wander into the Mad Forest. Pick your cards, build your gun, survive." },
-            new[] { "stageLang/{TEST}tips", "Level-ups and chests are ROUNDS card picks. Right mouse or Space blocks." },
-            new[] { "stageLang/{TEST}hyperTips", "50% Gold bonus" },
-            new[] { "progressLang/{TEST001_ACH001}description", "Survive 10 minutes in the Mad Forest as Orange Guy or Blue Guy." },
             new[] { "weaponLang/{___PLCHLD200}name", "ROUNDS Gun" },
             new[] { "weaponLang/{___PLCHLD200}description", "ROUNDS's own gun, fired by your ROUNDS. Aims at the nearest enemy; the mouse aims it too." },
             new[] { "weaponLang/{___PLCHLD200}tips", "Level-ups and chests are ROUNDS card picks that change it." },
@@ -54,6 +53,6 @@ namespace VampireRounds.Vs
             new[] { "characterLang/{type:blue}description", "ROUNDS's blue player with ROUNDS's gun and block. Every level-up is a ROUNDS card pick." },
         };
         /// <summary>Melty test checks (sheets/checks.json), in order.</summary>
-        public static readonly string[] Checks = { "engine-ready", "adventure-listed", "run-started", "rounds-drawn", "gun-fired", "enemy-hit", "card-picked" };
+        public static readonly string[] Checks = { "engine-ready", "adventure-listed", "run-started", "rounds-drawn", "gun-fired", "enemy-hit", "card-picked", "card-logo-shown" };
     }
 }

@@ -143,7 +143,7 @@
       "game": "vs",
       "target": "GameManager.SwapToTreasureScreen",
       "kind": "prefix",
-      "does": "a treasure chest in a Vampire Rounds run opens ROUNDS's card pick instead of VS's chest rewards",
+      "does": "a treasure chest in a Vampire Rounds run opens ROUNDS's card pick instead of VS's chest rewards, at most once per tuning chestCardSeconds of the run (the others give their gold alone)",
       "symbol": "Picks.OnChest"
     },
     {
@@ -173,10 +173,10 @@
     {
       "id": "h_player_heal",
       "game": "vs",
-      "target": "CharacterController.RecoverHp",
-      "kind": "prefix",
-      "does": "VS healing (Floor Chicken, regen) heals ROUNDS's health",
-      "symbol": "Session.PlayerHealed"
+      "target": "(runtime patch) VS's health bar rising between two frames",
+      "kind": "postfix",
+      "does": "VS healing (Floor Chicken, regen, a partner) heals ROUNDS's health: seen as VS's bar going up since the last frame (a patch on CharacterController.RecoverHp breaks Il2CppInterop's trampoline on its nullable arguments)",
+      "symbol": "Session.MirrorHealth,Session.PlayerHealed"
     },
     {
       "id": "h_test_walk",
@@ -231,7 +231,7 @@
       "game": "rounds",
       "target": "CardChoice.DoPlayerSelect",
       "kind": "prefix",
-      "does": "ROUNDS's pick screen follows the VS player's keys, stick or mouse",
+      "does": "ROUNDS's pick screen follows the VS player's keys, stick or mouse; only a card whose selection changes is told (no 0.2 s resync: MapsExtended shrank the first card on each), at ROUNDS's own sizes",
       "symbol": "ArenaPatches.PlayerSelect"
     },
     {
@@ -601,6 +601,38 @@
       "kind": "postfix",
       "does": "count each seat's shots (logs and the gun-fired test check)",
       "symbol": "ArenaPatches.ShotFired"
+    },
+    {
+      "id": "h_goal_text",
+      "game": "vs",
+      "target": "AchievementData.GetLocalizedDescription",
+      "kind": "postfix",
+      "does": "in the Vampire Rounds adventure a goal's text is its own (stages sheet), whatever other adventure uses the same progress type",
+      "symbol": "Content.GoalText"
+    },
+    {
+      "id": "h_no_save",
+      "game": "vs",
+      "target": "PlayerOptions.Save",
+      "kind": "prefix",
+      "does": "a run that plays by itself (Melty's test, developer autoplay) never writes VS's save",
+      "symbol": "TestMode.NoSave"
+    },
+    {
+      "id": "r_start_health",
+      "game": "rounds",
+      "target": "CharacterStatModifiers.ResetStats",
+      "kind": "postfix",
+      "does": "Orange and Blue start with tuning startHealth instead of ROUNDS's 100 (health cards multiply it as in ROUNDS)",
+      "symbol": "StartHealth.Reset"
+    },
+    {
+      "id": "r_card_look",
+      "game": "rounds",
+      "target": "CardVisuals.Start",
+      "kind": "postfix",
+      "does": "card parts drawn with ROUNDS's soft-shadow material get Unity's plain sprite material (the engine's cameras run no ROUNDS light pass)",
+      "symbol": "CardLookPatches.Started"
     }
   ]
 }

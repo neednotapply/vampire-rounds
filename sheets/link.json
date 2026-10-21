@@ -1051,6 +1051,14 @@
       "meaning": "1 while the gun reloads"
     },
     {
+      "id": "Q_DeckSerial",
+      "block": "rseat",
+      "offset": 60,
+      "type": "int",
+      "writer": "rounds",
+      "meaning": "goes up when this seat's cards or their logos change: VS reads deck<seat>.txt and the logos in cards (CardIcons)"
+    },
+    {
       "id": "H_Serial",
       "block": "hit",
       "offset": 0,

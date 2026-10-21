@@ -23,8 +23,8 @@
     {
       "id": "boot",
       "game": "vs",
-      "does": "once per VS start, pass VS's warning and title screens and open the Vampire Rounds adventure through VS's own pages, so VS starts on the adventure's menu",
-      "symbol": "Boot.Tick"
+      "does": "once per VS start, pass VS's warning and title screens and open the Vampire Rounds adventure through VS's own pages, so VS starts on the adventure's menu; the adventure's backdrop and title cover the screen until VS shows the adventure's menu (at most 20 s), so VS opens on that menu",
+      "symbol": "Boot.Tick,Boot.Gui"
     },
     {
       "id": "vs_mod",
@@ -121,6 +121,12 @@
       "game": "rounds",
       "does": "the BepInEx plugin: waits for ROUNDS's cards, keeps the hidden window away, ends with VS",
       "symbol": "EnginePlugin.CheckVs,EnginePlugin.Exit"
+    },
+    {
+      "id": "card_logos",
+      "game": "both",
+      "does": "each guy's ROUNDS cards as logos in VS's item slots: the engine pictures each card's art (ROUNDS's own AddCardVisual) into cards\\<key>.rgba and writes deck<seat>.txt; the VS mod shows them in copies of VS's slot frames over VS's hidden weapon and item rows (VS still collects and uses its items); ROUNDS's letter card bar is hidden",
+      "symbol": "CardIcons.Tick,CardIcons.DrawSheet,CardSlots.Tick"
     }
   ]
 }

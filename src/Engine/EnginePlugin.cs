@@ -16,7 +16,7 @@ namespace VampireRounds
     /// Runs inside the hidden ROUNDS that Vampire Rounds starts next to Vampire Survivors: waits until ROUNDS (and any card
     /// mods) have loaded every card, then runs the arena (Orange and Blue, their guns and cards) for VS over shared memory.
     /// </summary>
-    [BepInPlugin("gg.melty.vampirerounds.engine", "VampireRounds.Engine", "0.2.0")]
+    [BepInPlugin("gg.melty.vampirerounds.engine", "VampireRounds.Engine", "0.3.0")]
     public class EnginePlugin : BaseUnityPlugin
     {
         public static EnginePlugin I;
@@ -54,6 +54,8 @@ namespace VampireRounds
             Application.wantsToQuit += () => { L.LogWarning("arena: ROUNDS asked to quit; ignored while it is Vampire Rounds's engine"); return false; };
             // The launcher's face pictures: no VS, no arena; it draws them and ends.
             if (Faces.SheetMode) { L.LogInfo("faces: drawing the launcher's face pictures"); StartCoroutine(Faces.DrawSheet()); return; }
+            // A developer's card sheet: every card and its logo, no VS, no arena (CardIcons.DrawSheet ends the engine).
+            if (CardIcons.SheetMode) { L.LogInfo("cards sheet: drawing every card once ROUNDS has them"); StartCoroutine(WaitForCards()); return; }
             // VS learns at once that ROUNDS is on its way (cards take a while): the result block beats with the sandbox off.
             startingLink = ArenaLink.Open();
             if (startingLink != null)
@@ -97,6 +99,7 @@ namespace VampireRounds
             L.LogInfo("ROUNDS cards ready: " + last + " cards");
             FlushLog();
             if (Environment.GetCommandLineArgs().Any(a => a == "--vampirerounds-dump")) Diagnostics.DumpPlayer();
+            if (CardIcons.SheetMode) { StartCoroutine(CardIcons.DrawSheet()); yield break; }
             Faces.ApplyChoice();
             Arena.Create(gameObject);
         }

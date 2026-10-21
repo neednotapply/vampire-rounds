@@ -16,16 +16,28 @@ your own Steam copies of Vampire Survivors and ROUNDS).
 - **ROUNDS's gun instead of VS's weapons.** It fires by itself at the nearest enemy (the mouse aims it while it
   moves), with ROUNDS's ammo, reload and bullets; right mouse or Space is ROUNDS's block. ROUNDS runs the gun, so
   every card works with ROUNDS's own code: Bouncy bounces off the screen edges, Poison ticks, explosions hit crowds.
-- **Every level-up and treasure chest is a ROUNDS card pick.** ROUNDS's own pick screen (5 cards, its rarities, art
-  and rules); the card goes into your ROUNDS player at once, and ROUNDS's card bar shows your deck.
-- **Vampire Survivors's night.** The Mad Forest, its enemies, bosses, gems, gold and pickups are VS's own. VS decides
-  when an enemy's hit lands (its own pacing); the hit takes ROUNDS's health, and ROUNDS's death ends the VS life
-  (VS's revivals bring ROUNDS's player back). ROUNDS's slows, stuns and silences land as VS's own slow, freeze and
-  defang.
-- **Its own adventure, straight away.** VS opens on the Vampire Rounds adventure's menu (its warning and title
-  screens are passed; Back leaves the adventure). Its own progress, roster (Orange Guy and Blue Guy, both open from the
-  start) and stage; no VS merchants (they sell VS weapons). Your VS story and characters are untouched; Orange Guy and
-  Blue Guy only appear in it.
+- **Every level-up is a ROUNDS card pick, and so is a treasure chest (at most one a minute).** ROUNDS's own pick
+  screen (5 cards, its rarities, art and rules); the card goes into your ROUNDS player at once. Chests that come
+  sooner give their gold alone.
+- **Your cards where VS shows your items.** Each guy's ROUNDS cards fill VS's item slots at the top left as their
+  card logos (the real card art, drawn by your ROUNDS), five to a row, in the order you took them. VS's own weapon and
+  item slots are hidden there, but VS still collects and uses its pickups.
+- **Every card shows.** A mod card that comes with no picture (PCE ships 40 of them) gets the two letters ROUNDS's
+  card bar shows for it, big, in the card's colour; MapsExtended no longer shrinks the first card of a pick away; the
+  cards stand in front of the guy's face in the pick.
+- **Five stages, unlocked as in VS's own adventures.** Mad Forest, Inlaid Library, Dairy Plant, Gallo Tower and
+  Cappella Magna (VS's main stages that need no DLC), each VS's own (enemies, bosses, gems, gold, pickups, music).
+  Surviving 10 minutes in a stage (15 in Cappella Magna) is its goal: it gives gold and opens the next stage on the
+  adventure's chapter list, where you pick it when you like.
+- **Vampire Survivors's night.** VS decides when an enemy's hit lands (its own pacing); the hit takes ROUNDS's health,
+  and ROUNDS's death ends the VS life (VS's revivals bring ROUNDS's player back). ROUNDS's slows, stuns and silences
+  land as VS's own slow, freeze and defang.
+- **Harder than 0.2.0.** ROUNDS cards make a guy strong much faster than VS's items: the guys start with 70 health
+  instead of ROUNDS's 100 (health cards multiply it as in ROUNDS), and need more experience per level.
+- **Its own adventure, straight away.** VS opens on the Vampire Rounds adventure's menu: the adventure's art covers the
+  screen while VS's warning, title and menus are passed (Back leaves the adventure). Its own progress, roster (Orange
+  Guy and Blue Guy, both open from the start) and stages; no VS merchants (they sell VS weapons). Your VS story and
+  characters are untouched; Orange Guy and Blue Guy only appear in it.
 - **Thunderstore card mods.** The Vampire Rounds launcher (what Melty starts) browses ROUNDS mods on Thunderstore
   (card mods only, ticked by default), installs them with their dependencies into the hidden ROUNDS's own BepInEx,
   turns them on and off, updates them, and can copy an r2modman / Thunderstore Mod Manager profile or a profile code.
@@ -51,9 +63,10 @@ Needs ROUNDS on its **old-rounds-for-mods** Steam beta branch (ROUNDS > Properti
   guy, each guy's bare body and every face part, all pictured in one frame around the face (`faces/parts`, with
   `parts.txt`), so the launcher lays a face together from them. `--draw-faces` draws them without the window.
 - `Mods/VampireRounds.dll` (src/VsMod): the MelonLoader mod for VS. It adds the adventure (VS's unused
-  `ADV_LIB_001` slot), its stage (a copy of the player's own Mad Forest data under the unused `TEST` stage slot),
-  Orange Guy and Blue Guy (VS's own custom-character system), starts the hidden ROUNDS, opens VS on the adventure's
-  menu, and runs the link every frame.
+  `ADV_LIB_001` slot), its five stages (copies of the player's own stage data under stage slots no VS stage uses:
+  `TEST`, `TESTONE`, `ADV_0001TEST`, `ENTRANCE`, `CASTLE`; sheets/stages.json) with their goals (VS's adventure
+  progress), Orange Guy and Blue Guy (VS's own custom-character system), starts the hidden ROUNDS, opens VS on the
+  adventure's menu under a cover, shows the card logos in VS's item panel (CardSlots), and runs the link every frame.
 - `Plugins/VampireRounds.InteropFix.dll` (src/InteropFix): MelonLoader 0.7.3's Il2CppInterop cannot find
   `Class::GetDefaultFieldValue` on VS's Unity 6 build and VS crashes two seconds after start with any MelonLoader
   mod; this points the hook at the right function (the byte pattern was first found by the Isaac Survivors mashup).
@@ -66,7 +79,9 @@ Needs ROUNDS on its **old-rounds-for-mods** Steam beta branch (ROUNDS > Properti
   nothing unless ROUNDS is started with Vampire Rounds's arguments.
 - The two games talk through shared memory (`Local\VampireRoundsArena1`, sheets/link.json): VS writes the camera,
   each seat's position and input, the enemies and events; ROUNDS writes health, hits, effects, card picks and its
-  rendered picture (players and bullets; card bar; pick screen).
+  rendered picture (players and bullets; pick screen). Each seat's deck goes to `%LOCALAPPDATA%\VampireRounds\deck<seat>.txt`
+  and each card's logo to `cards\<key>.rgba` (the engine's CardIcons: the real card, made with ROUNDS's own
+  AddCardVisual far from the arena and pictured around its art); `Q_DeckSerial` tells VS when to read them again.
 
 Nothing from either game is in this repository or the package: each player's own ROUNDS draws the characters and
 runs the cards, and their own VS supplies the stage.
@@ -82,10 +97,13 @@ Windows, .NET SDK 8, Python 3 with Pillow, your own VS and ROUNDS on Steam.
    and the license texts (BepInEx, UnityDoorstop, HarmonyX, MonoMod, Mono.Cecil) in `~/vsr-work/dl/licenses`.
 3. The design sheets in `sheets/` are the source of truth: `python -I tools/sheets.py gen`, then
    `python -I tools/sheets.py preflight --code` (must say clean; it checks hook targets against your decompiled games).
-4. `python -I tools/package.py 0.2.0` builds all four projects (the launcher too) and writes `dist/VampireRounds-0.2.0.zip`; Melty installs
+4. `python -I tools/package.py 0.3.0` builds all four projects (the launcher too) and writes `dist/VampireRounds-0.3.0.zip`; Melty installs
    it with the recipe in `tools/recipe.json`.
 5. Developer runs: `devtools/devinstall.py on|off` (puts the staged build into your games and takes it out again),
-   `devtools/run.ps1 -Auto [-Slow] [-Hero blue] [-Cards "Explosive Bullet"]` (self-playing runs, optionally starting with ROUNDS cards), `devtools/shots.sh` (screenshots).
+   `devtools/run.ps1 -Auto [-Slow] [-Hero blue] [-Cards "Explosive Bullet"]` (self-playing runs, optionally starting with ROUNDS cards;
+   `VAMPIREROUNDS_DEV_ALLSTAGES=1` opens every stage and `VAMPIREROUNDS_AUTOPLAY_STAGE=<stages row or slot>` plays it), `devtools/shots.sh`
+   (screenshots), `devtools/cards.ps1` (every card ROUNDS has, whole and as its logo, with what it is drawn with, into
+   `%LOCALAPPDATA%\VampireRounds\cards\sheet` and `cards\audit.txt`).
 6. Cover art: `python -I tools/cover.py` (from PowerShell; needs Edge and the internet for its fonts) repaints
    `media/art/card.png` (Melty's game card) and `media/art/adventure_bg.png` (the adventure's backdrop in VS) from
    `tools/cover.html`; the package takes the backdrop from that PNG.
@@ -93,8 +111,9 @@ Windows, .NET SDK 8, Python 3 with Pillow, your own VS and ROUNDS on Steam.
 ## Test mode
 
 While `%LOCALAPPDATA%\Melty\test\vampire-rounds.json` exists, the mod plays by itself (into the adventure as Orange,
-walking a circle, taking picks) and writes `pass <check>` lines for: engine-ready, adventure-listed, run-started,
-rounds-drawn, gun-fired, enemy-hit, card-picked.
+walking a circle and stepping away from the horde, taking picks) and writes `pass <check>` lines for: engine-ready,
+adventure-listed, run-started, rounds-drawn, gun-fired, enemy-hit, card-picked, card-logo-shown. A run that plays by
+itself never writes VS's save, so a test leaves the player's progress as it was.
 
 ## License
 

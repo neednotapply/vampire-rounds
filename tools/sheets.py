@@ -181,6 +181,15 @@ def preflight(check_code, package):
                 problems.append("stages[%s].%s: VS StageType %s not found" % (r["id"], col, r[col]))
         if r["unlockedBy"] != "start" and r["unlockedBy"] not in stages:
             problems.append("stages[%s].unlockedBy -> %s does not resolve" % (r["id"], r["unlockedBy"]))
+        if not enum_has("vs", "AdventureAchievementType", r["goalType"]):
+            problems.append("stages[%s].goalType: VS AdventureAchievementType %s not found" % (r["id"], r["goalType"]))
+    for col in ("slot", "goalType", "order"):
+        vals = [r[col] for r in s["stages"]["rows"]]
+        for v in set(vals):
+            if vals.count(v) > 1:
+                problems.append("stages: %s %s used by more than one stage" % (col, v))
+    if sum(1 for r in s["stages"]["rows"] if r["unlockedBy"] == "start") != 1:
+        problems.append("stages: exactly one stage opens at the start")
     for r in s["texts"]["rows"]:
         for m in re.findall(r"\{type:(\w+)\}", r["term"]):
             if m not in chars:
@@ -262,7 +271,8 @@ def gen():
     L += ["    public sealed class CharacterRow", "    {",
           "        public string Id, VsName, Surname, Description, Color, BasePrefab, Folder;",
           "        public int Seat, WalkFrames;", "        public float MaxHp, MoveSpeed, Growth;", "    }", ""]
-    L += ["    public sealed class StageRow", "    {", "        public string Id, Slot, VsStage, UnlockedBy, Goal;", "        public int Order, Minutes;", "    }", ""]
+    L += ["    public sealed class StageRow", "    {", "        public string Id, Slot, VsStage, Name, Description, UnlockedBy, GoalType, Goal;",
+          "        public int Order, Minutes, GoalMinutes, GoalGold;", "    }", ""]
     L += ["    public sealed class AdventureRow", "    {",
           "        public string Id, Name, Description, ProgressKey, StartingCharacter;",
           "        public string[] Characters, Stages;", "        public int StartingCoins, CompletionCoins;", "    }", ""]
@@ -275,8 +285,9 @@ def gen():
     L.append("        };")
     L.append("        public static readonly StageRow[] Stages = {")
     for r in s["stages"]["rows"]:
-        L.append("            new StageRow { Id = %s, Order = %d, Slot = %s, VsStage = %s, UnlockedBy = %s, Minutes = %d, Goal = %s }," % (
-            cs_str(r["id"]), int(r["order"]), cs_str(r["slot"]), cs_str(r["vsStage"]), cs_str(r["unlockedBy"]), int(r["minutes"]), cs_str(r["goal"])))
+        L.append("            new StageRow { Id = %s, Order = %d, Slot = %s, VsStage = %s, Name = %s, Description = %s, UnlockedBy = %s, Minutes = %d, GoalMinutes = %d, GoalType = %s, Goal = %s, GoalGold = %d }," % (
+            cs_str(r["id"]), int(r["order"]), cs_str(r["slot"]), cs_str(r["vsStage"]), cs_str(r["name"]), cs_str(r["description"]), cs_str(r["unlockedBy"]),
+            int(r["minutes"]), int(r["goalMinutes"]), cs_str(r["goalType"]), cs_str(r["goal"]), int(r["goalGold"])))
     L.append("        };")
     L.append("        public static readonly AdventureRow[] Adventures = {")
     for r in s["adventure"]["rows"]:

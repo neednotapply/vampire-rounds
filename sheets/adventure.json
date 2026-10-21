@@ -13,6 +13,6 @@
     "completionCoins": "gold when the adventure is completed"
   },
   "rows": [
-    {"id": "ADV_LIB_001", "name": "Vampire Rounds", "description": "ROUNDS's Orange Guy and Blue Guy fight Vampire Survivors's night with ROUNDS's gun and ROUNDS cards.", "progressKey": "VampireRoundsMelty", "startingCharacter": "orange", "characters": "orange,blue", "stages": "mad_forest", "startingCoins": 2000, "completionCoins": 5000}
+    {"id": "ADV_LIB_001", "name": "Vampire Rounds", "description": "ROUNDS's Orange Guy and Blue Guy fight Vampire Survivors's night with ROUNDS's gun and ROUNDS cards, through its five main stages.", "progressKey": "VampireRoundsMelty", "startingCharacter": "orange", "characters": "orange,blue", "stages": "mad_forest,inlaid_library,dairy_plant,gallo_tower,cappella_magna", "startingCoins": 2000, "completionCoins": 5000}
   ]
 }

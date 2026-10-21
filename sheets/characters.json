@@ -11,9 +11,9 @@
     "basePrefab": "VS CharacterType whose character prefab the custom character is built from",
     "folder": "workshop folder name hashed into its runtime CharacterType",
     "walkFrames": "VS walking frames (the ROUNDS picture replaces them in a run)",
-    "maxHp": "VS max health (ROUNDS's health is the real one; VS shows it)",
+    "maxHp": "VS max health (ROUNDS's health is the real one and VS's bar shows it; the same as tuning startHealth, so VS's character select shows the health they start with)",
     "moveSpeed": "VS move speed multiplier (ROUNDS movement cards scale it)",
-    "growth": "VS experience multiplier (more level-ups = more ROUNDS cards early)"
+    "growth": "VS experience multiplier (below VS's 1: every level is a whole ROUNDS card, 0.3.0 balance)"
   },
   "rows": [
     {
@@ -26,9 +26,9 @@
       "basePrefab": "ANTONIO",
       "folder": "VampireRounds_Orange",
       "walkFrames": 1,
-      "maxHp": 100,
+      "maxHp": 70,
       "moveSpeed": 1,
-      "growth": 1.5
+      "growth": 0.8
     },
     {
       "id": "blue",
@@ -40,9 +40,9 @@
       "basePrefab": "ANTONIO",
       "folder": "VampireRounds_Blue",
       "walkFrames": 1,
-      "maxHp": 100,
+      "maxHp": 70,
       "moveSpeed": 1,
-      "growth": 1.5
+      "growth": 0.8
     }
   ]
 }

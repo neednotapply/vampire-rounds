@@ -1,7 +1,7 @@
 using System;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(VampireRounds.Vs.Mod), "Vampire Rounds", "0.2.0", "Vampire Rounds contributors")]
+[assembly: MelonInfo(typeof(VampireRounds.Vs.Mod), "Vampire Rounds", "0.3.0", "Vampire Rounds contributors")]
 [assembly: MelonGame("poncle", "Vampire Survivors")]
 
 namespace VampireRounds.Vs
@@ -45,11 +45,13 @@ namespace VampireRounds.Vs
         {
             try { FrameView.Tick(); }
             catch (Exception e) { Once("frame", e); }
+            try { CardSlots.Tick(); }
+            catch (Exception e) { Once("card slots", e); }
         }
 
         public override void OnGUI()
         {
-            try { FrameView.Gui(); Notice.Draw(); }
+            try { FrameView.Gui(); Notice.Draw(); Boot.Gui(); }
             catch (Exception e) { Once("gui", e); }
         }
 

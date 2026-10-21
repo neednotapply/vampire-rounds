@@ -86,5 +86,21 @@ namespace VampireRounds.Vs
         }
 
         private static bool acceptedThisPick;
+        private static bool noSaveLogged;
+
+        [HarmonyLib.HarmonyPatch(typeof(Il2CppVampireSurvivors.Objects.PlayerOptions), nameof(Il2CppVampireSurvivors.Objects.PlayerOptions.Save))]
+        public static class NoSavePatch
+        {
+            public static bool Prefix() => NoSave();
+        }
+
+        /// <summary>A run that plays by itself (Melty's test, a developer's autoplay) never writes VS's save: the player's
+        /// progress, gold and the adventure's unlocks stay exactly as they were.</summary>
+        public static bool NoSave()
+        {
+            if (!AutoPlay.On) return true;
+            if (!noSaveLogged) { noSaveLogged = true; Mod.Log("test: this run plays by itself; VS's save is left as it was"); }
+            return false;
+        }
     }
 }

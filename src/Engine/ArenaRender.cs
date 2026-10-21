@@ -191,6 +191,15 @@ namespace VampireRounds
             uiCanvas.renderMode = RenderMode.ScreenSpaceCamera;
             uiCanvas.worldCamera = uiCam;
             uiCanvas.planeDistance = 10f;
+            // VS shows each guy's cards as their logos in its own item slots (CardIcons, the VS mod's CardSlots); ROUNDS's
+            // letter squares in the corner would show the same deck twice. The bar still works (cards are added to it).
+            if (CardBarHandler.instance != null)
+            {
+                var g = CardBarHandler.instance.GetComponent<CanvasGroup>() ?? CardBarHandler.instance.gameObject.AddComponent<CanvasGroup>();
+                g.alpha = 0f;
+                g.blocksRaycasts = false;
+                EnginePlugin.L.LogInfo("arena: ROUNDS's card bar hidden (VS shows the card logos)");
+            }
         }
 
         private unsafe void Publish(Unity.Collections.NativeArray<byte> src, Unity.Collections.NativeArray<byte> ui, Unity.Collections.NativeArray<byte> uiW, float[] meta)
@@ -393,6 +402,8 @@ namespace VampireRounds
             Arena.I.RecordPicked(pickr, pickedCard.GetComponent<CardInfo>());
         }
 
+        private static readonly AccessTools.FieldRef<CardVisuals, ScaleShake> ShakeRef = AccessTools.FieldRefAccess<CardVisuals, ScaleShake>("shake");
+
         /// <summary>ROUNDS's card pick, driven by the VS player's keys, stick or mouse.</summary>
         [HarmonyPrefix, HarmonyPatch(typeof(CardChoice), "DoPlayerSelect")]
         public static bool PlayerSelect(CardChoice __instance)
@@ -410,18 +421,20 @@ namespace VampireRounds
             int mouse = a.MouseCard(slot, spawned, ArenaRenderer.PickCam);
             if (mouse >= 0) cur = mouse;
             cur = Mathf.Clamp(cur, 0, spawned.Count - 1);
-            float counter = t.Field("counter").GetValue<float>();
+            // Only a card whose state changes is told. ROUNDS also re-sends a card's state every 0.2 s (a network resync the
+            // offline sandbox does not need), and MapsExtended's ChangeSelected postfix scales the card's target size by
+            // ROUNDS's main camera size / 20 on every call, no-op ones included: the first card shrank away (Roundhead
+            // 0.1.4, Vampire Rounds 0.3.0). The pick is drawn at ROUNDS's own size (ortho 20), so the size a change sets is
+            // ROUNDS's own as well (1.15 selected, 0.9 not), whatever the main camera shows.
             for (int j = 0; j < spawned.Count; j++)
             {
                 if (spawned[j] == null) continue;
                 var vis = spawned[j].GetComponentInChildren<CardVisuals>();
-                if (vis != null && (vis.isSelected != (cur == j) || counter > 0.2f))
-                {
-                    counter = 0f;
-                    spawned[j].GetComponent<PhotonView>().RPC("RPCA_ChangeSelected", RpcTarget.All, cur == j);
-                }
+                if (vis == null || vis.isSelected == (cur == j)) continue;
+                spawned[j].GetComponent<PhotonView>().RPC("RPCA_ChangeSelected", RpcTarget.All, cur == j);
+                var shake = ShakeRef(vis);
+                if (shake != null) shake.targetScale = cur == j ? 1.15f : 0.9f;
             }
-            t.Field("counter").SetValue(counter);
             t.Field("currentlySelectedCard").SetValue(cur);
             bool busy = t.Field("isPlaying").GetValue<bool>();
             if (a.TakeAccept(slot) && !busy && spawned[cur] != null)
@@ -431,6 +444,62 @@ namespace VampireRounds
             }
             if (CardChoiceVisuals.instance.currentCardSelected != cur) Traverse.Create(CardChoiceVisuals.instance).Method("SetCurrentSelected", cur).GetValue();
             return false;
+        }
+    }
+    /// <summary>
+    /// Orange and Blue start every life with tuning startHealth instead of ROUNDS's 100 (sheets/hooks.json r_start_health):
+    /// set wherever ROUNDS resets a player's stats (its own reset between games, a mod's), so health cards multiply it as
+    /// ROUNDS does. ROUNDS sizes a player by its health, so they start a little smaller, as a ROUNDS player with less health is.
+    /// </summary>
+    public static class StartHealth
+    {
+        private static readonly AccessTools.FieldRef<CharacterStatModifiers, CharacterData> DataRef = AccessTools.FieldRefAccess<CharacterStatModifiers, CharacterData>("data");
+
+        [HarmonyPostfix, HarmonyPatch(typeof(CharacterStatModifiers), "ResetStats")]
+        public static void Reset(CharacterStatModifiers __instance)
+        {
+            if (Arena.I == null || !EnginePlugin.Hidden) return;
+            Apply(__instance);
+        }
+
+        public static void Apply(CharacterStatModifiers stats)
+        {
+            if (stats == null) return;
+            try
+            {
+                var data = DataRef(stats) ?? stats.GetComponent<CharacterData>();
+                if (data == null) return;
+                data.maxHealth = Tuning.startHealth;
+                data.health = Tuning.startHealth;
+                Traverse.Create(stats).Method("ConfigureMassAndSize").GetValue();
+            }
+            catch (Exception e) { EnginePlugin.L.LogWarning("arena: start health: " + e.Message); }
+        }
+    }
+
+    /// <summary>Every card ROUNDS shows in the hidden engine (the pick, the logos) in its own colours (CardLook).</summary>
+    public static class CardLookPatches
+    {
+        [HarmonyPostfix, HarmonyPatch(typeof(CardVisuals), "Start")]
+        public static void Started(CardVisuals __instance)
+        {
+            if (!EnginePlugin.Hidden || __instance == null) return;
+            var info = __instance.GetComponentInParent<CardInfo>();
+            try { CardLook.Emblem(__instance, info); }
+            catch (Exception e) { EnginePlugin.L.LogWarning("cards: emblem for " + (info != null ? info.cardName : "?") + ": " + e.Message); }
+            // In the pick the cards stand in front of the picking guy's big face (a top hat covered them, 0.2.0): his face
+            // parts are drawn with Unity's sprite material here (FaceLook), sorted with the cards, not under them.
+            var canvas = __instance.GetComponentInChildren<Canvas>(true);
+            if (canvas != null && canvas.sortingOrder < CardLook.CardOrder) canvas.sortingOrder = CardLook.CardOrder;
+            CardLook.Apply(info != null ? info.gameObject : __instance.gameObject);
+            CardLook.EmblemSelected(__instance, __instance.isSelected);
+        }
+
+        [HarmonyPostfix, HarmonyPatch(typeof(CardVisuals), "ChangeSelected")]
+        public static void Selected(CardVisuals __instance)
+        {
+            if (!EnginePlugin.Hidden || __instance == null) return;
+            CardLook.EmblemSelected(__instance, __instance.isSelected);
         }
     }
 }

@@ -54,7 +54,7 @@ namespace VampireRounds
         public const float engineStaleSeconds = 3.0f;
         /// <summary>statusStaleSeconds (s): if the status table stops changing this long, every enemy status is cleared</summary>
         public const float statusStaleSeconds = 0.5f;
-        /// <summary>chestPicks (cards): a treasure chest gives one ROUNDS card pick per chest (VS's own chests give 1, 3 or 5 items; ROUNDS picks are bigger)</summary>
+        /// <summary>chestPicks (cards): a treasure chest's ROUNDS card pick gives one card (VS's own chests give 1, 3 or 5 items; ROUNDS picks are bigger); chestCardSeconds spaces them out</summary>
         public const float chestPicks = 1.0f;
         /// <summary>levelUpPicks (cards): every VS level-up is one ROUNDS pick</summary>
         public const float levelUpPicks = 1.0f;
@@ -64,5 +64,9 @@ namespace VampireRounds
         public const float testMinutes = 4.0f;
         /// <summary>hitNoise (VS hp): health changes smaller than this after VS's damage step are rounding, not hits</summary>
         public const float hitNoise = 0.5f;
+        /// <summary>startHealth (ROUNDS hp): Orange and Blue start every life with this much health instead of ROUNDS's 100: ROUNDS cards make a guy strong much faster than VS's items make a VS hero (0.3.0 balance), so he starts more fragile; health cards multiply it as in ROUNDS</summary>
+        public const float startHealth = 70.0f;
+        /// <summary>chestCardSeconds (VS seconds): a treasure chest is a ROUNDS card pick only when the last chest card was at least this long ago on VS's run clock; the others give their gold alone (bosses and elites drop chests in bunches: ten chest cards in ten minutes made the guys too strong too soon, 0.3.0)</summary>
+        public const float chestCardSeconds = 60.0f;
     }
 }

@@ -173,6 +173,7 @@ namespace VampireRounds
                 Step("hold", HoldPlayers);
                 Step("pick", CheckPick);
                 Step("portraits", () => Portraits.Tick(players));
+                Step("decks", () => CardIcons.Tick(players, link, this));
                 Step("log", LogState);
             }
             Step("result", WriteResult);
@@ -224,6 +225,7 @@ namespace VampireRounds
                     ResetCards(players[i]);
                     try { players[i].data.healthHandler.Revive(true); } catch (Exception e) { EnginePlugin.L.LogWarning("arena: revive at run start: " + e.Message); }
                 }
+            CardIcons.Reset();
             link.I(ArenaLink.ResultOff + ArenaLink.R_Run, run);
             EnginePlugin.L.LogInfo("arena: run " + run + " starts: plain guns, no enemies");
             if (!first) DevStartCards();
@@ -347,6 +349,7 @@ namespace VampireRounds
             Traverse.Create(PlayerAssigner.instance).Method("SetPlayersCanJoin", false).GetValue();
             var p = data.player;
             players[slot] = p;
+            StartHealth.Apply(p.data.stats);
             yield return null;
             try { p.GetFaceOffline(); } catch (Exception e) { EnginePlugin.L.LogWarning("arena face: " + e.Message); }
             // Each player stands on its own floor (so its legs step as VS walks it); bullets never see those floors.

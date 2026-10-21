@@ -264,6 +264,8 @@ namespace VampireRounds
         public const int Q_Shots = 52;
         /// <summary>rseat: 1 while the gun reloads</summary>
         public const int Q_Reloading = 56;
+        /// <summary>rseat: goes up when this seat's cards or their logos change: VS reads deck(seat).txt and the logos in cards (CardIcons)</summary>
+        public const int Q_DeckSerial = 60;
         /// <summary>hit: hit number + 1 (written last)</summary>
         public const int H_Serial = 0;
         /// <summary>hit: T_Id of the enemy</summary>

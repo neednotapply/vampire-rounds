@@ -163,8 +163,31 @@ namespace VampireRounds.Vs
                     finally { passThrough = false; }
                     continue;
                 }
+                // VS's own heals (Floor Chicken, regeneration, a partner's) went into VS's bar since the last frame: they go
+                // to ROUNDS's health instead (h_player_heal), then the bar shows ROUNDS's again.
+                float now = c.CurrentHp;
+                if (mirroredLife[s] == life[s] && now > mirrored[s] + Tuning.hitNoise)
+                    Link.L.PostEvent(ArenaLink.EvHeal, s, now - mirrored[s], 0f, 0f, 0f, life[s]);
                 c.CurrentHp = Mathf.Clamp(vsMax * hp / max, 0.01f, vsMax);
+                mirrored[s] = c.CurrentHp;
+                mirroredLife[s] = life[s];
             }
+        }
+
+        /// <summary>The health MirrorHealth last gave VS's bar, per seat, and the life it belongs to.</summary>
+        private static readonly float[] mirrored = new float[ArenaLink.Seats];
+        private static readonly int[] mirroredLife = { -1, -1 };
+
+        /// <summary>Developers' runs (AutoPlay's VAMPIREROUNDS_DEV_DIE_AT): the life ends as a ROUNDS death ends it, so the
+        /// run's end (VS's game over, recap and unlocks) can be seen without waiting for the horde.</summary>
+        public static void DevDie(int s)
+        {
+            var c = s >= 0 && s < SeatChar.Length ? SeatChar[s] : null;
+            if (c == null || c.IsDead) return;
+            Mod.Log("dev: ending " + (s == 0 ? "Orange" : "Blue") + "'s life");
+            passThrough = true;
+            try { c.CurrentHp = 0.01f; c.TakeDamage(Mathf.Max(1f, c.MaxHp()) * 10f); }
+            finally { passThrough = false; }
         }
 
         private static bool passThrough;
@@ -227,20 +250,12 @@ namespace VampireRounds.Vs
             return false;
         }
 
-        [HarmonyPatch(typeof(CharacterController), nameof(CharacterController.RecoverHp))]
-        public static class HealPatch
-        {
-            public static bool Prefix(CharacterController __instance, float value) => PlayerHealed(__instance, value);
-        }
-
-        public static bool PlayerHealed(CharacterController c, float value)
-        {
-            if (!InRun || !Content.IsOurs(c) || !Link.ArenaUp || value <= 0f) return true;
-            int s = Array.IndexOf(SeatChar, c);
-            if (s < 0) return true;
-            Link.L.PostEvent(ArenaLink.EvHeal, s, value, 0f, 0f, 0f, life[s]);
-            return false;
-        }
+        /// <summary>
+        /// VS's heals reach ROUNDS through MirrorHealth (VS's bar going up between two frames). A Harmony patch on
+        /// CharacterController.RecoverHp cannot be used: its two nullable arguments break Il2CppInterop's trampoline
+        /// (NullReferenceException in Buffer.Memmove on every heal, the heal lost; seen in 0.2.0).
+        /// </summary>
+        public static void PlayerHealed(int seat, float value) => Link.L?.PostEvent(ArenaLink.EvHeal, seat, value, 0f, 0f, 0f, life[seat]);
 
         [HarmonyPatch(typeof(CharacterController), nameof(CharacterController.Revive))]
         public static class RevivePatch

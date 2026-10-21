@@ -26,8 +26,12 @@ namespace VampireRounds.Vs
         private static float openedAt;
         private static bool resumeAfter;
 
+        /// <summary>VS's run clock when the last chest card was given (tuning chestCardSeconds).</summary>
+        private static float lastChestCard = float.NegativeInfinity;
+
         public static void Reset()
         {
+            lastChestCard = float.NegativeInfinity;
             queue.Clear();
             if (Open) Finish(false);
             Open = false;
@@ -80,7 +84,18 @@ namespace VampireRounds.Vs
         {
             if (!Session.InRun) return true;
             int seat = SeatOf(player);
-            Mod.Log("picks: treasure chest for seat " + seat + ": ROUNDS card pick");
+            float now = 0f;
+            try { now = gm.SurvivedSeconds; } catch { }
+            // Bosses and elites drop chests in bunches: a chest is a card pick at most once per chestCardSeconds of the run,
+            // the others give their gold alone (0.3.0 balance).
+            if (now - lastChestCard < Tuning.chestCardSeconds)
+            {
+                Mod.Log("picks: treasure chest for seat " + seat + " at " + now.ToString("0") + " s: gold only (the last chest card was " + (now - lastChestCard).ToString("0") + " s ago)");
+                Notice.Toast("Treasure: gold this time. A chest gives a ROUNDS card at most once a minute.", 3.5f);
+                return false;
+            }
+            lastChestCard = now;
+            Mod.Log("picks: treasure chest for seat " + seat + " at " + now.ToString("0") + " s: ROUNDS card pick");
             queue.Enqueue(new Pending { seat = seat, count = (int)Tuning.chestPicks, levelUp = false });
             TryOpen();
             return false;

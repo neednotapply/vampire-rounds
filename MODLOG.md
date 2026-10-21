@@ -174,3 +174,49 @@
   so this editor can go there as a PR.
 - 0.2.0 (2026-10-20): commit a502351 pushed to github.com/neednotapply/vampire-rounds main; Melty draft release a4d528fa
   (upload 3104643e, one click: yes, launch kind exe). Not tested on Melty yet: publishing needs a passing test of 0.2.0.
+
+## 0.3.0 (2026-10-20, creator: card display, straight into the menu, more levels, card logos in the item slots, the
+## shrinking card, test with their Thunderstore mods, balance)
+- Design agreed: all of VS's main stages that need no DLC (Mad Forest, Inlaid Library, Dairy Plant, Gallo Tower, Cappella
+  Magna), unlocked as in VS's adventures (a stage's goal opens the next on the chapter list; nothing moves the player
+  there). Goals: survive 10 minutes (15 in Cappella Magna). Balance "for starters": less health and harder levels.
+- Creator's mods (installed by the launcher on 2026-10-20 into VS's UserData/VampireRounds/rounds/BepInEx/plugins):
+  PCE 2.7.11, XAngelMoonX-CR 2.7.0 and 28 dependencies (MapsExtended 1.4.2, Classes Manager Reborn, RarityLib, ...);
+  225 cards. Their play log (2026-10-20 19:03-20:04, copied to ~/vsr-work/logs/creator-2026-10-20): 26 cards in about
+  14 minutes of play (10 from chests, 6 of them within 3 minutes), 1236 hp, health always full.
+- Shrinking card: MapsExtended's CardVisuals.ChangeSelected postfix multiplies ScaleShake.targetScale by
+  MainCam.orthographicSize / 20 on every call, and ChangeSelected returns early (no reset) when the state is unchanged;
+  our DoPlayerSelect re-sent card 0's state every 0.2 s (ROUNDS's network resync): card 0 shrank away. Now only a changed
+  card is told, and the size it gets is ROUNDS's own (1.15 / 0.9). Same fix as Roundhead 0.1.4.
+- "Cards that do not display": devtools/cards.ps1 (engine --vampirerounds-cards) pictured all 225 cards: every card with
+  art renders right (UI/Default, UI/Procedural and Sprites/Default only; no art layer outside ROUNDS's main camera mask).
+  41 cards have cardArt == null (40 PCE: Comb, Last Stand, Super Ball, Fireworks, ...; 1 CMR): ROUNDS itself shows them
+  with an empty art space. CardLook.Emblem gives them ROUNDS's card-bar letters ("Co"), big, in the card colour
+  (TextMeshProUGUI with the title's font, 4x its size), dimmed with the card when not chosen. The pick's big face (top
+  hat) was drawn over the cards: card canvases now sort at 500 on MostFront (ROUNDS: 10).
+- Card logos: CardIcons (engine) pictures a card's art square (0.8 of the face's width around Canvas/Front/Background/Art)
+  from ROUNDS's own AddCardVisual at (30000, 30000) on layer 29, 0.5 s after it starts (real time; VS may have ROUNDS
+  paused), 96 px, into %LOCALAPPDATA%\VampireRounds\cards\<key>.rgba; deck<seat>.txt + Q_DeckSerial (rseat 60).
+  CardSlots (VS) puts copies of VS's WeaponSlot prefab (GameEquipmentPanel._WeaponPrefab, its Icon stretched to the
+  frame, level pips and Blocked off) in a GridLayoutGroup beside WeaponsPanel (ignoreLayout), 5 per row at 1.25x VS's
+  36-unit slot; WeaponsPanel and AccessoryPanel get CanvasGroup alpha 0. ROUNDS's own letter card bar is hidden
+  (CanvasGroup alpha 0 on CardViz). VS's panel: EquipmentPanel(Clone) [HorizontalLayoutGroup] > PlayerIcon (off),
+  Container [VerticalLayoutGroup] > WeaponsPanel / AccessoryPanel [GridLayoutGroup], slots 36x36 every 42 units.
+- Straight into the menu: Boot.Gui covers the screen (OnGUI, over VS's canvases) with the adventure backdrop and title
+  from the mod's first frame until the adventure's menu is up (18 s on this PC, most of it VS's own loading); it lifts
+  after 12 s without a boot step or 60 s in all. Boot steps every 0.1 s instead of 0.5 s.
+- Stages: slots TEST, TESTONE, ADV_0001TEST, ENTRANCE, CASTLE (no VS or DLC data uses them). Goal types: TEST001_ACH001
+  and MS001_ACH019 (no adventure uses them), POES_ACH012-014 (A Garlic Paradise's; each adventure keeps its progress in
+  its own PlayerOptionsData, AdventureManager.CurrentAdventureSaveData.AdventureProgress, so they never mix). VS looks
+  goal texts up by type (progressLang/{TYPE}description): AchievementData.GetLocalizedDescription(AdventureAchievementType)
+  is patched in our adventure only. A 0.2.0 save that met the Mad Forest goal (it opened nothing then) gets the Library
+  opened at InitAdventure (VS never checks a met goal again); seen on the creator's save.
+- Balance: start health 70 (StartHealth: postfix on CharacterStatModifiers.ResetStats and at player creation; ROUNDS
+  sizes players by health, so they start ~6% smaller), growth 1.5 -> 0.8, a chest is a card pick at most once per 60 s
+  of VS's run clock (GameManager.SurvivedSeconds; the others give their gold alone, with a note).
+- Heals: the 0.2.0 Harmony prefix on CharacterController.RecoverHp(float, bool, bool, ItemType?, WeaponType?) threw in
+  Il2CppInterop's trampoline (Buffer.Memmove NRE, 669 times in the creator's log): heals were lost. VS's own RecoverHp now
+  runs; MirrorHealth sees VS's bar rise between frames and sends the difference to ROUNDS.
+- Test and developer autoplay runs never write VS's save (prefix on PlayerOptions.Save); autoplay steps away from the
+  horde (Enemies.Away). Dev switches: VAMPIREROUNDS_DEV_ALLSTAGES, VAMPIREROUNDS_AUTOPLAY_STAGE, VAMPIREROUNDS_DEV_GOALMINUTES.
+- The creator's VS save was backed up to ~/vsr-work/save-backup before the dev runs (Steam userdata 64298853/1794680).

@@ -1,14 +1,19 @@
 {
   "sheet": "stages",
-  "about": "The adventure's stages: VS's own stages (map, enemies, bosses, music) used from the player's game, each under a free adventure stage slot. order = position in the adventure's stage list.",
+  "about": "The adventure's stages, all of VS's main stages that need no DLC: VS's own stages (map, enemies, bosses, music) played from the player's game, each stored again under a free stage slot of the adventure. Like VS's own adventures, a stage opens on the adventure's stage list once the goal of the stage before it is met (VS's adventure progress: the goal, its gold and the unlock show at the end of a run). order = position in the stage list.",
   "columns": {
     "id": "row id",
     "order": "position in the stage list",
-    "slot": "free VS StageType key it is stored under in the adventure's stage data (TEST, TESTONE, ADV_0001TEST are unused by the game)",
+    "slot": "free VS StageType key it is stored under in the adventure's stage data (none of these is a stage of the game or its DLC: TEST, TESTONE, ADV_0001TEST, ENTRANCE, CASTLE)",
     "vsStage": "VS StageType whose stage (tiles, waves, bosses) it plays",
+    "name": "stage name in the adventure",
+    "description": "stage description in the stage list",
     "unlockedBy": "start, or the stages row whose goal unlocks it",
     "minutes": "the stage's length in VS minutes",
-    "goal": "the progress goal shown in the adventure (its gold prize)"
+    "goalMinutes": "minutes to survive in this stage to meet its goal",
+    "goalType": "VS AdventureAchievementType the goal is kept under (in this adventure's own save; its text is the goal column, never VS's)",
+    "goal": "the progress goal shown in the adventure (its gold prize: goalGold)",
+    "goalGold": "gold the goal gives"
   },
   "rows": [
     {
@@ -16,9 +21,70 @@
       "order": 1,
       "slot": "TEST",
       "vsStage": "FOREST",
+      "name": "Mad Forest",
+      "description": "Two ROUNDS blobs wander into the Mad Forest. Pick your cards, build your gun, survive.",
       "unlockedBy": "start",
       "minutes": 30,
-      "goal": "Survive 10 minutes in the Mad Forest as Orange or Blue."
+      "goalMinutes": 10,
+      "goalType": "TEST001_ACH001",
+      "goal": "Survive 10 minutes in the Mad Forest.",
+      "goalGold": 1000
+    },
+    {
+      "id": "inlaid_library",
+      "order": 2,
+      "slot": "TESTONE",
+      "vsStage": "LIBRARY",
+      "name": "Inlaid Library",
+      "description": "Endless shelves and everything that crawls between them. The library runs sideways forever.",
+      "unlockedBy": "mad_forest",
+      "minutes": 30,
+      "goalMinutes": 10,
+      "goalType": "MS001_ACH019",
+      "goal": "Survive 10 minutes in the Inlaid Library.",
+      "goalGold": 1000
+    },
+    {
+      "id": "dairy_plant",
+      "order": 3,
+      "slot": "ADV_0001TEST",
+      "vsStage": "WAREHOUSE",
+      "name": "Dairy Plant",
+      "description": "Pipes, tanks and the night shift. Mind the dark corners of the old plant.",
+      "unlockedBy": "inlaid_library",
+      "minutes": 30,
+      "goalMinutes": 10,
+      "goalType": "POES_ACH012",
+      "goal": "Survive 10 minutes in the Dairy Plant.",
+      "goalGold": 1500
+    },
+    {
+      "id": "gallo_tower",
+      "order": 4,
+      "slot": "ENTRANCE",
+      "vsStage": "TOWER",
+      "name": "Gallo Tower",
+      "description": "One long way up. The tower runs up and down forever and the horde comes from both ends.",
+      "unlockedBy": "dairy_plant",
+      "minutes": 30,
+      "goalMinutes": 10,
+      "goalType": "POES_ACH013",
+      "goal": "Survive 10 minutes in Gallo Tower.",
+      "goalGold": 1500
+    },
+    {
+      "id": "cappella_magna",
+      "order": 5,
+      "slot": "CASTLE",
+      "vsStage": "CHAPEL",
+      "name": "Cappella Magna",
+      "description": "The great chapel at the end of the night. Last stop of the Vampire Rounds adventure.",
+      "unlockedBy": "gallo_tower",
+      "minutes": 30,
+      "goalMinutes": 15,
+      "goalType": "POES_ACH014",
+      "goal": "Survive 15 minutes in Cappella Magna.",
+      "goalGold": 3000
     }
   ]
 }

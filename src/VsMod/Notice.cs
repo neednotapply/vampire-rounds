@@ -9,6 +9,15 @@ namespace VampireRounds.Vs
         private static Texture2D bg;
         private static GUIStyle style;
         private static float runSince = -1f;
+        private static string toast;
+        private static float toastUntil;
+
+        /// <summary>A short note during a run (a chest that gave gold only).</summary>
+        public static void Toast(string text, float seconds)
+        {
+            toast = text;
+            toastUntil = Time.unscaledTime + seconds;
+        }
 
         public static void Draw()
         {
@@ -23,6 +32,7 @@ namespace VampireRounds.Vs
                         : "ROUNDS has not started. Card picks wait until it does; see %LOCALAPPDATA%\\VampireRounds for its log.";
             }
             if (Link.ArenaUp || !Session.InRun) runSince = -1f;
+            if (text == null && Session.InRun && !FrameView.PickShowing && Time.unscaledTime < toastUntil) text = toast;
             if (text == null) return;
             float k = Screen.height / 1080f;
             if (bg == null) { bg = new Texture2D(1, 1); bg.SetPixel(0, 0, new Color(0.05f, 0.05f, 0.08f, 0.88f)); bg.Apply(); bg.hideFlags = HideFlags.DontUnloadUnusedAsset; }

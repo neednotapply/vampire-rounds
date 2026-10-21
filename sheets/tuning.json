@@ -162,7 +162,7 @@
       "id": "chestPicks",
       "value": 1,
       "unit": "cards",
-      "why": "a treasure chest gives one ROUNDS card pick per chest (VS's own chests give 1, 3 or 5 items; ROUNDS picks are bigger)"
+      "why": "a treasure chest's ROUNDS card pick gives one card (VS's own chests give 1, 3 or 5 items; ROUNDS picks are bigger); chestCardSeconds spaces them out"
     },
     {
       "id": "levelUpPicks",
@@ -187,6 +187,18 @@
       "value": 0.5,
       "unit": "VS hp",
       "why": "health changes smaller than this after VS's damage step are rounding, not hits"
+    },
+    {
+      "id": "startHealth",
+      "value": 70,
+      "unit": "ROUNDS hp",
+      "why": "Orange and Blue start every life with this much health instead of ROUNDS's 100: ROUNDS cards make a guy strong much faster than VS's items make a VS hero (0.3.0 balance), so he starts more fragile; health cards multiply it as in ROUNDS"
+    },
+    {
+      "id": "chestCardSeconds",
+      "value": 60,
+      "unit": "VS seconds",
+      "why": "a treasure chest is a ROUNDS card pick only when the last chest card was at least this long ago on VS's run clock; the others give their gold alone (bosses and elites drop chests in bunches: ten chest cards in ten minutes made the guys too strong too soon, 0.3.0)"
     }
   ]
 }
