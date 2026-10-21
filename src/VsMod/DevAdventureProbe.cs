@@ -6,10 +6,32 @@ using Il2CppVampireSurvivors.App.Scripts.Framework.Adventures;
 
 namespace VampireRounds.Vs
 {
-    /// <summary>Developer runs only: which checks VS's adventure list makes (SelectAdventuresPage.Populate).</summary>
+    /// <summary>Developer runs only: which checks VS's adventure list makes (SelectAdventuresPage.Populate), and switches
+    /// that show it as a newer player's save does: VAMPIREROUNDS_DEV_NO_ATLAS (the Atlas relic not found),
+    /// VAMPIREROUNDS_DEV_NO_DLC (no DLC adventure owned) and VAMPIREROUNDS_DEV_FRESH (Adventures never opened: VS's intro
+    /// tutorial pops up). Together they are the player of the 0.3.0 report, whose adventure list was empty.</summary>
     public static class DevAdventureProbe
     {
         private static bool inPopulate;
+        private static readonly bool NoDlc = DevConsole.On && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VAMPIREROUNDS_DEV_NO_DLC"));
+        private static readonly bool Fresh = DevConsole.On && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VAMPIREROUNDS_DEV_FRESH"));
+
+        [HarmonyPatch(typeof(SelectAdventuresPage), "OnShowStart")]
+        public static class ShowWatch
+        {
+            public static bool Prepare() => DevConsole.On;
+            public static void Prefix(SelectAdventuresPage __instance)
+            {
+                if (!Fresh) return;
+                try
+                {
+                    // In memory only: the run plays by itself (VAMPIREROUNDS_AUTOPLAY), so VS's save is never written.
+                    __instance.PlayerOptions.Config.HasSeenAdventuresIntroTutorial = false;
+                    Mod.Log("dev: adventure list: shown as to a player who never opened Adventures");
+                }
+                catch (Exception e) { Mod.Log("dev: fresh adventurer: " + e.Message); }
+            }
+        }
 
         [HarmonyPatch(typeof(SelectAdventuresPage), "Populate")]
         public static class PopulateWatch
@@ -43,7 +65,11 @@ namespace VampireRounds.Vs
         public static class OwnedWatch
         {
             public static bool Prepare() => DevConsole.On;
-            public static void Postfix(AdventureType type, bool __result) { if (inPopulate) Mod.Log("dev: adventure list asks IsOwned(" + type + ") = " + __result); }
+            public static void Postfix(AdventureType type, ref bool __result)
+            {
+                if (NoDlc && type != Content.Adventure) __result = false;
+                if (inPopulate) Mod.Log("dev: adventure list asks IsOwned(" + type + ") = " + __result);
+            }
         }
     }
 }

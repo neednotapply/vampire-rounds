@@ -275,3 +275,10 @@
   DevAdventureProbe, dev-only, VAMPIREROUNDS_DEV_NO_ATLAS hides the Atlas); ADV_LIB_001 is one of those slots, so a save
   without the Atlas listed nothing. Content.EnsureListed (Populate postfix) adds our card when it is missing; verified with
   the Atlas hidden: card added, boot reached the adventure's menu, the run started and fired.
+- 0.4.0 published 2026-10-21 (release 7bacbbce, Melty test 592f225d passed 3/3, footage reviewed); in Melty's safety
+  review for 2+ hours (0.3.0 took ~30 min), publish requested again at 22:4x UTC.
+- Player report (load:errors, 1 player, 0.3.0) re-checked against 0.4.0 in the reporting player's exact state: dev
+  switches VAMPIREROUNDS_DEV_NO_ATLAS + VAMPIREROUNDS_DEV_NO_DLC (IsOwned false for every other adventure) +
+  VAMPIREROUNDS_DEV_FRESH (HasSeenAdventuresIntroTutorial false, in memory; the run plays by itself so VS never saves):
+  VS listed 0 adventures, EnsureListed added ours (1 card), boot reached the adventure's menu (19.8 s), autoplay started
+  a run that fired and hit. No new release needed; the fix record (report_bug_fix) carries this evidence.
