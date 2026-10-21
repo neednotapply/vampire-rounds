@@ -25,8 +25,10 @@ WriteUnityLog = true
 README = """Vampire Rounds {version}
 =====================
 
-A Vampire Survivors adventure where ROUNDS's Orange Guy and Blue Guy fight with ROUNDS's gun, and every level-up and treasure
-chest is a ROUNDS card pick. Made for Melty (melty.gg): Melty installs it and starts it with one press of Play.
+A Vampire Survivors adventure where ROUNDS's Orange Guy and Blue Guy fight with ROUNDS's gun: every level-up is a ROUNDS
+card pick (and a treasure chest, at most once a minute), your cards show as their logos in Vampire Survivors's item slots,
+and five stages (Mad Forest, Inlaid Library, Dairy Plant, Gallo Tower, Cappella Magna) open one by one as you survive each.
+Made for Melty (melty.gg): Melty installs it and starts it with one press of Play.
 
 Needs your own Vampire Survivors and your own ROUNDS (on its "old-rounds-for-mods" Steam beta branch), both on Steam.
 Your ROUNDS runs hidden in the background while you play: it draws Orange Guy and Blue Guy, runs their gun, cards and block,
@@ -34,9 +36,10 @@ and shows its card pick. Nothing from either game is in this package.
 
 Playing: Melty starts the Vampire Rounds launcher: add ROUNDS card mods from Thunderstore if you like (card mods only is
 ticked; they install into the hidden ROUNDS's BepInEx) and make each guy's face in the face editor (FACES), then press PLAY. Vampire Survivors opens on the Vampire Rounds
-adventure's menu. Choose Orange Guy (or Blue Guy). The gun aims at the
-nearest enemy and fires by itself; move the mouse to aim it yourself. Right mouse or Space blocks (gamepad: left
-trigger). A second player on a gamepad can join as the other colour on the same PC.
+adventure's menu. Choose Orange Guy (or Blue Guy) and a stage: surviving 10 minutes in a stage (15 in Cappella Magna)
+opens the next. The gun aims at the nearest enemy and fires by itself; move the mouse to aim it yourself. Right mouse or
+Space blocks (gamepad: left trigger). A second player on a gamepad can join as the other colour on the same PC
+(Co-Op & Party Mode in character select); there is no online play.
 
 Files: managed/VampireRoundsLauncher.exe (the launcher), Mods/VampireRounds.dll (the Vampire Survivors mod, MelonLoader), Plugins/VampireRounds.InteropFix.dll (lets
 MelonLoader mods run on Vampire Survivors's Unity 6 build), UserData/VampireRounds/rounds (BepInEx 5 and

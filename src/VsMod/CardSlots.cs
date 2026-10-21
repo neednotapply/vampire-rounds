@@ -9,24 +9,28 @@ using UnityEngine.UI;
 namespace VampireRounds.Vs
 {
     /// <summary>
-    /// ROUNDS card logos where VS shows a hero's weapons and items (sheets/systems.json "card_logos"). In a Vampire Rounds
-    /// run each guy's HUD panel (VS's GameEquipmentPanel) shows his ROUNDS cards, one logo per slot in the order he took them,
-    /// six to a row and as many rows as he has cards, in VS's own slot frames. VS's weapon and item slots stay where they
-    /// are, unseen: VS still collects what its pickups give and uses it. The deck and the logos come from the hidden ROUNDS
-    /// (the engine's CardIcons: deck&lt;seat&gt;.txt and cards\&lt;key&gt;.rgba, re-read when the seat's Q_DeckSerial moves).
+    /// ROUNDS's card bar where VS shows a hero's weapons and items (sheets/systems.json "card_logos"): in a Vampire Rounds run
+    /// each guy's HUD panel (VS's GameEquipmentPanel) shows his ROUNDS cards as ROUNDS's card bar does, a square with the
+    /// card's two letters on the guy's colour per card, in the order he took them, ten to a row and as many rows as he has
+    /// cards. VS's weapon and item slots stay where they are, unseen: VS still collects what its pickups give and uses it.
+    /// The deck and the squares come from the hidden ROUNDS (the engine's CardIcons: deck&lt;seat&gt;.txt and
+    /// cards\chip&lt;seat&gt;-&lt;key&gt;.rgba, re-read when the seat's Q_DeckSerial moves).
     /// </summary>
     public static class CardSlots
     {
-        /// <summary>Five logos to a row, each a quarter bigger than VS's slot, fill the width of VS's six slots: a card's
-        /// art reads at that size, a VS slot's 16-pixel icons are drawn for theirs.</summary>
-        private const int PerRow = 5;
-        private const float Grow = 1.25f;
+        /// <summary>Squares to a row (ROUNDS's bar is one long row; ten of VS's slot size fill the top left up to VS's
+        /// clock), and the gap between them.</summary>
+        private const int PerRow = 10;
+        private const float Gap = 3f;
+        /// <summary>Each seat's colour (sheets/characters.json color): a square waiting for its picture shows it.</summary>
+        private static readonly Color[] SeatColor = { new Color(0.957f, 0.478f, 0.129f, 0.6f), new Color(0.180f, 0.490f, 0.878f, 0.6f) };
 
         private sealed class Card { public string key, name; public Color color; }
         private sealed class Cell { public GameObject go; public Image icon; public string key; public bool logo; }
 
         private sealed class Seat
         {
+            public int seat;
             public int serial = int.MinValue;
             public bool refresh;
             public readonly List<Card> cards = new List<Card>();
@@ -39,7 +43,7 @@ namespace VampireRounds.Vs
             public GameObject prefab;
         }
 
-        private static readonly Seat[] seats = { new Seat(), new Seat() };
+        private static readonly Seat[] seats = { new Seat { seat = 0 }, new Seat { seat = 1 } };
         private static readonly Dictionary<string, Sprite> logos = new Dictionary<string, Sprite>();
         private static readonly Dictionary<string, DateTime> logoStamp = new Dictionary<string, DateTime>();
         private static readonly HashSet<IntPtr> dumped = new HashSet<IntPtr>();
@@ -96,9 +100,10 @@ namespace VampireRounds.Vs
             catch (Exception e) { Mod.Once("card slots: deck " + seat, e); }
         }
 
-        /// <summary>A card's logo, loaded again when the engine has drawn a newer one.</summary>
-        private static Sprite Logo(string key, bool recheck)
+        /// <summary>A card's square of ROUNDS's card bar for a seat, loaded again when the engine has drawn a newer one.</summary>
+        private static Sprite Logo(int seat, string cardKey, bool recheck)
         {
+            string key = "chip" + seat + "-" + cardKey;
             Sprite have;
             logos.TryGetValue(key, out have);
             if (have != null && !recheck) return have;
@@ -165,7 +170,7 @@ namespace VampireRounds.Vs
                 if (size.x < 1f || size.y < 1f) size = first.sizeDelta;
                 if (size.x >= 1f && size.y >= 1f) st.cell = Vector2.Max(st.cell, size);
             }
-            st.cell *= Grow;
+            st.spacing = new Vector2(Gap, Gap);
             var go = new GameObject("Vampire Rounds cards " + seatIndex);
             var rt = go.AddComponent<RectTransform>();
             rt.SetParent(weapons.parent, false);
@@ -184,8 +189,8 @@ namespace VampireRounds.Vs
             layout.constraintCount = PerRow;
             st.grid = rt;
             st.layout = layout;
-            Mod.Log("card slots: " + (seatIndex == 0 ? "Orange" : "Blue") + "'s card logos in VS's item panel (slot " + st.cell.x.ToString("0") + "x" + st.cell.y.ToString("0")
-                + ", spacing " + st.spacing.x.ToString("0") + ", " + (st.prefab != null ? "VS's slot frame" : "plain frame") + ")");
+            Mod.Log("card slots: " + (seatIndex == 0 ? "Orange" : "Blue") + "'s ROUNDS card bar in VS's item panel (squares " + st.cell.x.ToString("0") + "x" + st.cell.y.ToString("0")
+                + ", gap " + st.spacing.x.ToString("0") + ", " + PerRow + " to a row)");
             if (DevConsole.On && dumped.Add(panel.Pointer)) Dump(panel.transform);
         }
 
@@ -234,11 +239,11 @@ namespace VampireRounds.Vs
                 var card = st.cards[i];
                 if (st.refresh || cell.key != card.key)
                 {
-                    var logo = Logo(card.key, st.refresh);
+                    var logo = Logo(st.seat, card.key, st.refresh);
                     cell.key = card.key;
                     cell.logo = logo != null;
                     cell.icon.sprite = logo != null ? logo : Blank();
-                    cell.icon.color = logo != null ? Color.white : card.color;
+                    cell.icon.color = logo != null ? Color.white : SeatColor[st.seat];
                     cell.icon.preserveAspect = true;
                     cell.icon.enabled = true;
                     cell.go.name = "card " + card.name;
@@ -256,58 +261,19 @@ namespace VampireRounds.Vs
             return withLogo;
         }
 
-        /// <summary>A copy of VS's own slot (its frame), its icon showing the logo, its level pips and "blocked" mark away;
-        /// a plain dark square with the logo when VS's slot is not there.</summary>
+        /// <summary>One square: the picture of ROUNDS's square fills it (it is its own frame, as in ROUNDS's bar).</summary>
         private static Cell MakeCell(Seat st, int i)
         {
             try
             {
-                GameObject go;
-                Image icon = null;
-                if (st.prefab != null)
-                {
-                    go = UnityEngine.Object.Instantiate(st.prefab, st.grid, false);
-                    var item = go.GetComponent<GameEquipmentPanelItem>();
-                    if (item != null)
-                    {
-                        icon = item._icon;
-                        if (item._levelContainer != null) item._levelContainer.gameObject.SetActive(false);
-                        if (item._BlockedIcon != null) item._BlockedIcon.gameObject.SetActive(false);
-                    }
-                    if (icon != null)
-                    {
-                        // The logo fills the frame (VS's icon is a fixed 36 x 32 in its 36-unit slot).
-                        var irt = icon.rectTransform;
-                        irt.anchorMin = new Vector2(0.09f, 0.09f);
-                        irt.anchorMax = new Vector2(0.91f, 0.91f);
-                        irt.offsetMin = irt.offsetMax = Vector2.zero;
-                    }
-                    var cg = go.GetComponent<CanvasGroup>();
-                    if (cg != null) cg.alpha = 1f;
-                }
-                else
-                {
-                    go = new GameObject("card slot");
-                    go.AddComponent<RectTransform>().SetParent(st.grid, false);
-                    var bg = go.AddComponent<Image>();
-                    bg.sprite = Blank();
-                    bg.color = new Color(0.05f, 0.05f, 0.08f, 0.8f);
-                }
-                if (icon == null)
-                {
-                    var ig = new GameObject("logo");
-                    var irt = ig.AddComponent<RectTransform>();
-                    irt.SetParent(go.transform, false);
-                    irt.anchorMin = new Vector2(0.08f, 0.08f);
-                    irt.anchorMax = new Vector2(0.92f, 0.92f);
-                    irt.offsetMin = irt.offsetMax = Vector2.zero;
-                    icon = ig.AddComponent<Image>();
-                }
-                icon.gameObject.SetActive(true);
+                var go = new GameObject("card square");
+                go.AddComponent<RectTransform>().SetParent(st.grid, false);
+                var icon = go.AddComponent<Image>();
                 icon.raycastTarget = false;
+                icon.preserveAspect = true;
                 return new Cell { go = go, icon = icon };
             }
-            catch (Exception e) { Mod.Once("card slots: slot", e); return null; }
+            catch (Exception e) { Mod.Once("card slots: square", e); return null; }
         }
 
         /// <summary>Developer runs: VS's item panel as it is laid out (to place the logos where its slots are).</summary>

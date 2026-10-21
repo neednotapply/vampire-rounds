@@ -25,14 +25,56 @@ namespace VampireRounds.Vs
             return new Vector2(m.x / Mathf.Max(1, Screen.width), m.y / Mathf.Max(1, Screen.height));
         }
 
-        /// <summary>The mouse in VS's world (VS renders into a texture, so through the viewport, not the screen).</summary>
+        /// <summary>The mouse in VS's world. VS renders its world into a texture and shows it in a picture on its UI, with
+        /// bars beside it when the window is wider than the picture (a 16:9 window shows a 16:10 view): the mouse is read in
+        /// that picture, then through the camera's viewport (read against the whole window, the aim went off to the sides
+        /// by up to a tenth of the screen).</summary>
         public static Vector2 MouseWorld()
         {
             var cam = Session.Cam;
             if (cam == null) return Vector2.zero;
             Vector2 v = MouseViewport();
+            Rect view;
+            if (GameView(cam, out view) && view.width > 1f && view.height > 1f)
+            {
+                Vector3 m = Input.mousePosition;
+                v = new Vector2((m.x - view.x) / view.width, (m.y - view.y) / view.height);
+            }
             Vector3 w = cam.ViewportToWorldPoint(new Vector3(v.x, v.y, 10f));
             return new Vector2(w.x, w.y);
+        }
+
+        private static UnityEngine.UI.RawImage gameView;
+        private static IntPtr gameViewOf;
+        private static float nextViewSearch;
+        private static bool viewLogged;
+
+        /// <summary>Where on the screen VS shows its camera's picture (the RawImage holding the camera's target texture), in
+        /// screen pixels; false when the camera draws to the screen itself (then the window is the view).</summary>
+        private static bool GameView(Camera cam, out Rect rect)
+        {
+            rect = default(Rect);
+            var tex = cam.targetTexture;
+            if (tex == null) return false;
+            if ((gameView == null || gameViewOf != tex.Pointer) && Time.unscaledTime > nextViewSearch)
+            {
+                nextViewSearch = Time.unscaledTime + 2f;
+                gameView = null;
+                foreach (var ri in UnityEngine.Object.FindObjectsOfType<UnityEngine.UI.RawImage>())
+                    if (ri != null && ri.isActiveAndEnabled && ri.texture != null && ri.texture.Pointer == tex.Pointer) { gameView = ri; gameViewOf = tex.Pointer; break; }
+            }
+            if (gameView == null) return false;
+            var corners = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<Vector3>(4);
+            gameView.rectTransform.GetWorldCorners(corners);
+            var canvas = gameView.canvas;
+            Camera uiCam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            Vector2 a = RectTransformUtility.WorldToScreenPoint(uiCam, corners[0]), b = RectTransformUtility.WorldToScreenPoint(uiCam, corners[2]);
+            var uv = gameView.uvRect;
+            // A picture showing part of the texture (uvRect) shows that part of the camera's view.
+            float w = (b.x - a.x) / Mathf.Max(0.0001f, uv.width), h = (b.y - a.y) / Mathf.Max(0.0001f, uv.height);
+            rect = new Rect(a.x - uv.x * w, a.y - uv.y * h, w, h);
+            if (!viewLogged) { viewLogged = true; Mod.Log("input: VS shows its world in " + gameView.name + " at " + rect + " of a " + Screen.width + "x" + Screen.height + " window (uv " + uv + ")"); }
+            return true;
         }
 
         public static void Aim(CharacterController c, Vector2 pos, out Vector2 aim, out bool fire)
@@ -42,7 +84,8 @@ namespace VampireRounds.Vs
             fire = false;
             aim = lastAim[seat];
             bool mouseAim = false;
-            if (IsKeyboardPlayer(c))
+            // A run that plays by itself aims by itself: the mouse of someone at the PC (watching a test) never steers it.
+            if (IsKeyboardPlayer(c) && !AutoPlay.On)
             {
                 try
                 {

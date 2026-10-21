@@ -14,6 +14,6 @@
     {"id": "gun-fired", "proves": "ROUNDS's gun fired at VS enemies", "symbol": "TestMode.Mark"},
     {"id": "enemy-hit", "proves": "a ROUNDS bullet hit and damaged a VS enemy", "symbol": "TestMode.Mark"},
     {"id": "card-picked", "proves": "a VS level-up opened ROUNDS's card pick and a card was taken", "symbol": "TestMode.Mark"},
-    {"id": "card-logo-shown", "proves": "a picked ROUNDS card's logo is shown in VS's item slots", "symbol": "TestMode.Mark"}
+    {"id": "card-logo-shown", "proves": "a picked ROUNDS card shows as its card-bar square in VS's item area", "symbol": "TestMode.Mark"}
   ]
 }

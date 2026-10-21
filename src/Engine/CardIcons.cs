@@ -4,19 +4,19 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace VampireRounds
 {
     /// <summary>
-    /// The ROUNDS card logos Vampire Survivors shows in its item slots (sheets/systems.json "card_logos"). Each seat's deck
-    /// (its ROUNDS player's cards, in the order taken) goes to %LOCALAPPDATA%\VampireRounds\deck&lt;seat&gt;.txt, and the seat's
-    /// Q_DeckSerial goes up whenever the deck or one of its logos changes. A logo is the art of the real ROUNDS card: the
-    /// card is made with ROUNDS's own AddCardVisual (as its card bar's hover shows a card), far from the arena on a layer of
-    /// its own, and the art square at the top of its face is pictured into cards\&lt;key&gt;.rgba (a .png beside it for people).
-    /// A developer run with --vampirerounds-cards pictures every card (whole, and its logo) and lists what each is drawn
-    /// with (cards\audit.txt), then ends.
+    /// Each guy's ROUNDS cards for Vampire Survivors's item area (sheets/systems.json "card_logos"): VS's item slots give
+    /// way to ROUNDS's own card bar. Each seat's deck (its ROUNDS player's cards, in the order taken) goes to
+    /// %LOCALAPPDATA%\VampireRounds\deck&lt;seat&gt;.txt, and each card's square of ROUNDS's card bar (its two letters on the
+    /// seat's colour, as ROUNDS draws it) is pictured into cards\chip&lt;seat&gt;-&lt;key&gt;.rgba; the seat's Q_DeckSerial goes up
+    /// whenever the deck or one of its squares changes, and VS shows them. A developer run with --vampirerounds-cards
+    /// pictures every card (whole, and the square around its art) and lists what each is drawn with (cards\audit.txt).
     /// </summary>
     public static class CardIcons
     {
@@ -30,14 +30,14 @@ namespace VampireRounds
         public static string Dir => Path.Combine(Paths.DataDir(), "cards");
         public static string DeckFile(int seat) => Path.Combine(Paths.DataDir(), "deck" + seat + ".txt");
         public static bool SheetMode => Environment.GetCommandLineArgs().Any(a => a == SheetFlag);
+        private static readonly bool Dev = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VAMPIREROUNDS_DEV"));
 
-        private static readonly Queue<CardInfo> queue = new Queue<CardInfo>();
-        private static readonly HashSet<string> done = new HashSet<string>(), queued = new HashSet<string>();
+        private static readonly HashSet<string> done = new HashSet<string>();
+        private static readonly Dictionary<string, float> firstSeen = new Dictionary<string, float>();
         private static readonly string[] deckSig = new string[ArenaLink.Seats];
         private static readonly int[] deckSerial = new int[ArenaLink.Seats];
         /// <summary>Serials start somewhere new each engine start, so VS never takes a restarted engine's deck for one it read.</summary>
         private static readonly int serialBase = (Environment.TickCount & 0x3FFF) * 10000;
-        private static bool busy, dirty;
         private static float nextCheck;
         private static Camera cam;
 
@@ -56,7 +56,8 @@ namespace VampireRounds
 
         // ------------------------------------------------------------------ decks (each arena frame)
 
-        /// <summary>Each seat's cards: a changed deck is written for VS, and its cards' logos are drawn if not yet.</summary>
+        /// <summary>Each seat's cards: a changed deck is written for VS, and each card's square of ROUNDS's card bar (its two
+        /// letters on the seat's colour) is pictured for VS's item slots if it is not yet.</summary>
         public static void Tick(Player[] players, ArenaLink link, MonoBehaviour host)
         {
             if (Time.unscaledTime < nextCheck) return;
@@ -66,28 +67,31 @@ namespace VampireRounds
                 var p = players[s];
                 var cards = p != null && p.data != null && p.data.currentCards != null ? p.data.currentCards.Where(c => c != null).ToList() : new List<CardInfo>();
                 string sig = string.Join("|", cards.Select(Cards.Id).ToArray());
-                if (sig == deckSig[s] && !dirty) continue;
-                bool changed = sig != deckSig[s];
-                deckSig[s] = sig;
-                foreach (var c in cards) Want(c);
-                if (changed || dirty) WriteDeck(s, cards, link);
+                bool drew = false;
+                foreach (var c in cards)
+                {
+                    string chip = s + ":" + Key(c);
+                    if (done.Contains(chip)) continue;
+                    // A moment after the card came, so its square is in the bar (with the letters ROUNDS gave it).
+                    float seen;
+                    if (!firstSeen.TryGetValue(chip, out seen)) { firstSeen[chip] = Time.unscaledTime; continue; }
+                    if (Time.unscaledTime - seen < 0.2f) continue;
+                    done.Add(chip);
+                    try { drew |= DrawChip(p, s, c); }
+                    catch (Exception e) { EnginePlugin.L.LogWarning("chips: " + c.cardName + ": " + e.Message); }
+                }
+                if (sig != deckSig[s] || drew)
+                {
+                    deckSig[s] = sig;
+                    WriteDeck(s, cards, link);
+                }
             }
-            dirty = false;
-            if (!busy && queue.Count > 0) host.StartCoroutine(DrawQueued());
         }
 
         /// <summary>A new run (or a ROUNDS started again): every deck is written afresh.</summary>
         public static void Reset()
         {
             for (int s = 0; s < deckSig.Length; s++) deckSig[s] = null;
-        }
-
-        private static void Want(CardInfo c)
-        {
-            string key = Key(c);
-            if (done.Contains(key) || queued.Contains(key)) return;
-            queued.Add(key);
-            queue.Enqueue(c);
         }
 
         /// <summary>"key TAB name TAB rarity TAB colour" per card, in the order taken; written whole, then the serial.</summary>
@@ -113,30 +117,6 @@ namespace VampireRounds
             catch (Exception e) { EnginePlugin.L.LogWarning("logos: deck " + seat + ": " + e.Message); }
         }
 
-        private static IEnumerator DrawQueued()
-        {
-            busy = true;
-            var batch = new List<CardInfo>();
-            while (queue.Count > 0 && batch.Count < 12) batch.Add(queue.Dequeue());
-            var pics = new Picture[batch.Count];
-            for (int i = 0; i < batch.Count; i++) pics[i] = Picture.Make(batch[i], i);
-            yield return Settle(pics);
-            int n = 0;
-            for (int i = 0; i < batch.Count; i++)
-            {
-                string key = Key(batch[i]);
-                queued.Remove(key);
-                done.Add(key);
-                if (pics[i] == null) continue;
-                try { if (pics[i].SaveLogo(Path.Combine(Dir, key + ".rgba"))) n++; }
-                catch (Exception e) { EnginePlugin.L.LogWarning("logos: " + batch[i].cardName + ": " + e.Message); }
-                finally { pics[i].Destroy(); }
-            }
-            EnginePlugin.L.LogInfo("logos: " + n + " of " + batch.Count + " card logos drawn (" + string.Join(", ", batch.Select(c => c.cardName).ToArray()) + ")");
-            dirty = true;  // the decks are written again, so VS loads the new logos
-            busy = false;
-        }
-
         /// <summary>The cards' own animations start and their particles fill in, in real time (VS may have ROUNDS paused,
         /// its time scale at 0); then each art's animator is run on past its opening (Critical Hit's starburst pops in a
         /// second after the card appears: at half a second the logo showed only the card's background).</summary>
@@ -151,6 +131,129 @@ namespace VampireRounds
             foreach (var p in pics) { p?.Rest(); p?.Advance(1.5f); }
             yield return null;
             foreach (var p in pics) { p?.Rest(); p?.Relayer(); }
+        }
+
+        // ------------------------------------------------------------------ a card's square of ROUNDS's card bar
+
+        /// <summary>Chip pictures are this many pixels square.</summary>
+        public const int ChipSize = 72;
+        private static readonly AccessTools.FieldRef<CardBarButton, CardInfo> ButtonCard = AccessTools.FieldRefAccess<CardBarButton, CardInfo>("card");
+        private static GameObject chipCanvas;
+        private static int drawnChips;
+        public static string ChipFile(int seat, string key) => Path.Combine(Dir, "chip" + seat + "-" + key + ".rgba");
+
+        /// <summary>The card bar ROUNDS keeps for a player (CardBarHandler gives each player id its own).</summary>
+        private static CardBar BarFor(Player p)
+        {
+            if (p == null || CardBarHandler.instance == null) return null;
+            var bars = Traverse.Create(CardBarHandler.instance).Field("cardBars").GetValue<CardBar[]>();
+            return bars != null && p.playerID >= 0 && p.playerID < bars.Length ? bars[p.playerID] : null;
+        }
+
+        private static Canvas ChipCanvas()
+        {
+            if (chipCanvas != null) return chipCanvas.GetComponent<Canvas>();
+            chipCanvas = new GameObject("Vampire Rounds chip canvas", typeof(RectTransform));
+            UnityEngine.Object.DontDestroyOnLoad(chipCanvas);
+            chipCanvas.layer = Layer;
+            var cv = chipCanvas.AddComponent<Canvas>();
+            cv.renderMode = RenderMode.WorldSpace;
+            chipCanvas.transform.position = new Vector3(40000f, 40000f, 0f);
+            chipCanvas.transform.localScale = Vector3.one * 0.01f;
+            ((RectTransform)chipCanvas.transform).sizeDelta = new Vector2(1000f, 1000f);
+            return cv;
+        }
+
+        /// <summary>
+        /// The card's square of ROUNDS's own card bar (sheets/systems.json "card_logos"): ROUNDS's square for this player's
+        /// bar (its colours, its frame, ROUNDS's font) with the letters ROUNDS gave the card there (its first two, "Co"). It
+        /// is pictured alone into cards\chip(seat)-(key).rgba, as 0.2.0 showed the bar over VS's stages.
+        /// </summary>
+        private static bool DrawChip(Player p, int seat, CardInfo card)
+        {
+            var bar = BarFor(p);
+            if (bar == null) return false;
+            GameObject button = null, template = null;
+            for (int i = 0; i < bar.transform.childCount; i++)
+            {
+                var c = bar.transform.GetChild(i);
+                var b = c.GetComponent<CardBarButton>();
+                if (b == null) continue;
+                if (!c.gameObject.activeSelf) { if (template == null) template = c.gameObject; continue; }
+                var bc = ButtonCard(b);
+                if (bc != null && (bc == card || Cards.Id(bc) == Cards.Id(card))) button = c.gameObject;
+            }
+            // ROUNDS's template square (the bar's first, hidden child) as it is drawn once it has come in: a new square
+            // fades in after a pick, and copied then it was all but empty. Its letters are the ones ROUNDS gave the card.
+            var from = template ?? button;
+            if (from == null) return false;
+            string letters = null;
+            if (button != null)
+            {
+                var bt = button.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
+                if (bt != null && !string.IsNullOrEmpty(bt.text)) letters = bt.text;
+            }
+            if (string.IsNullOrEmpty(letters)) letters = CardLook.Letters(card.cardName);
+            var canvas = ChipCanvas();
+            var clone = UnityEngine.Object.Instantiate(from, canvas.transform, false);
+            try
+            {
+                clone.name = "Vampire Rounds chip " + card.cardName;
+                clone.SetActive(true);
+                foreach (var b in clone.GetComponentsInChildren<CardBarButton>(true)) b.enabled = false;
+                foreach (var c in clone.GetComponentsInChildren<CurveAnimation>(true)) c.enabled = false;
+                foreach (var c in clone.GetComponentsInChildren<ScaleShake>(true)) c.enabled = false;
+                foreach (var a in clone.GetComponentsInChildren<Animator>(true)) a.enabled = false;
+                foreach (var g in clone.GetComponentsInChildren<CanvasGroup>(true)) g.alpha = 1f;
+                var rt = (RectTransform)clone.transform;
+                var srt = (RectTransform)from.transform;
+                var size = srt.rect.size;
+                if (size.x < 1f || size.y < 1f) size = srt.sizeDelta;
+                if (size.x < 1f || size.y < 1f) size = new Vector2(100f, 100f);
+                rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = Vector2.zero;
+                rt.localRotation = Quaternion.identity;
+                rt.localScale = Vector3.one;
+                rt.sizeDelta = size;
+                var text = clone.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
+                if (text != null) text.text = letters;
+                foreach (var t in clone.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = Layer;
+                Canvas.ForceUpdateCanvases();
+                var corners = new Vector3[4];
+                rt.GetWorldCorners(corners);
+                Vector3 center = (corners[0] + corners[2]) / 2f;
+                float side = Mathf.Max(Vector3.Distance(corners[0], corners[3]), Vector3.Distance(corners[0], corners[1])) * 1.06f;
+                // As 0.2.0 showed ROUNDS's bar over VS (ArenaRenderer.UiFrame): pictured over black and over white, the
+                // coverage is what the white lost, raised with tuning uiOpacityBoost; ROUNDS draws the square's fill as a
+                // faint wash for its own dark screen, and a single picture of it was all but see-through.
+                var black = Shoot(ChipSize, ChipSize, center, Quaternion.identity, side / 2f, new Color(0f, 0f, 0f, 0f), false);
+                var white = Shoot(ChipSize, ChipSize, center, Quaternion.identity, side / 2f, Color.white, false);
+                var px = new Color32[black.Length];
+                for (int k = 0; k < px.Length; k++) px[k] = ArenaRenderer.UiPixel(black[k], white[k]);
+                WriteRgba(ChipFile(seat, Key(card)), ChipSize, ChipSize, px);
+                EnginePlugin.L.LogInfo("chips: " + (seat == 0 ? "Orange" : "Blue") + "'s " + card.cardName + " (" + letters + (button != null ? "" : ", no square in the bar") + ")");
+                if (Dev && drawnChips++ < 2)
+                {
+                    var sb = new StringBuilder("chips: dev square of " + card.cardName + ":");
+                    foreach (var t in from.GetComponentsInChildren<Transform>(true))
+                    {
+                        sb.Append(" [" + t.name + (t.gameObject.activeSelf ? "" : " off"));
+                        foreach (var c in t.GetComponents<Component>()) if (c != null && !(c is Transform)) sb.Append(" " + c.GetType().Name);
+                        var g = t.GetComponent<Graphic>();
+                        if (g != null) sb.Append(" colour " + ColorUtility.ToHtmlStringRGBA(g.color) + " mat " + (g.material != null ? g.material.name : "-"));
+                        sb.Append("]");
+                    }
+                    for (var t = bar.transform; t != null; t = t.parent)
+                    {
+                        var g = t.GetComponent<Graphic>();
+                        var cg = t.GetComponent<CanvasGroup>();
+                        sb.Append(" <" + t.name + (g != null ? " colour " + ColorUtility.ToHtmlStringRGBA(g.color) : "") + (cg != null ? " group " + cg.alpha : "") + ">");
+                    }
+                    EnginePlugin.L.LogInfo(sb.ToString());
+                }
+                return true;
+            }
+            finally { UnityEngine.Object.Destroy(clone); }
         }
 
         // ------------------------------------------------------------------ one card, pictured
@@ -191,21 +294,22 @@ namespace VampireRounds
                 foreach (var c in go.GetComponentsInChildren<GeneralParticleSystem>(true)) c.useTimeScale = false;
             }
 
-            /// <summary>The card at rest, face up, as its fly-in ends: ROUNDS's CurveAnimations start a card turned to its
-            /// back and turn it over in ROUNDS's own time, which stands still while VS is paused (a run's first moments): the
-            /// logos of cards dealt then were pictures of the card's back. Each one is stopped where its animation ends.</summary>
+            /// <summary>The card's face shown, whatever its fly-in has got to: ROUNDS fades a card's face in and turns it over
+            /// as it appears, in its own time, and a card dealt as a run starts was still turned over (its face's CanvasGroup
+            /// at 0, its back showing) when its logo was taken. The logo is the face: its CanvasGroup full, the back away.</summary>
             public void Rest()
             {
                 if (go == null) return;
-                foreach (var c in go.GetComponentsInChildren<CurveAnimation>(true))
+                var vis = go.GetComponentInChildren<CardVisuals>(true);
+                if (vis == null) return;
+                var front = vis.transform.Find("Canvas/Front");
+                var back = vis.transform.Find("Canvas/Back");
+                if (back != null && back.gameObject.activeSelf) back.gameObject.SetActive(false);
+                if (front != null)
                 {
-                    if (c == null) continue;
-                    c.StopAllCoroutines();
-                    var t = c.transform;
-                    t.localEulerAngles = c.startRotation;
-                    t.localScale = c.startScale;
-                    var rt = t as RectTransform;
-                    if (rt != null) rt.anchoredPosition = c.startAnchoredPos;
+                    if (!front.gameObject.activeSelf) front.gameObject.SetActive(true);
+                    var g = front.GetComponent<CanvasGroup>();
+                    if (g != null && g.alpha < 1f) g.alpha = 1f;
                 }
             }
 
@@ -275,7 +379,12 @@ namespace VampireRounds
             public bool SaveLogo(string file)
             {
                 if (!ArtSquare(out var center, out var side, out var rot)) { EnginePlugin.L.LogWarning("logos: " + card.cardName + " has no card face"); return false; }
+                Rest();
                 Relayer();
+                if (Dev) Diagnose();
+                // The world-space canvas takes the pose it has now, not the one it had when Unity last rebuilt it this frame.
+                Canvas.ForceUpdateCanvases();
+                if (!ArtSquare(out center, out side, out rot)) return false;
                 var px = Shoot(Size, Size, center, rot, side / 2f);
                 WriteRgba(file, Size, Size, px);
                 return true;
@@ -283,8 +392,9 @@ namespace VampireRounds
 
             public void SaveCardPng(string file)
             {
-                if (!CardRect(out var center, out var w, out var h, out var rot)) return;
                 Relayer();
+                Canvas.ForceUpdateCanvases();
+                if (!CardRect(out var center, out var w, out var h, out var rot)) return;
                 int ph = 420, pw = Mathf.Clamp(Mathf.RoundToInt(ph * w / h), 120, 800);
                 var px = Shoot(pw, ph, center, rot, h / 2f * 1.04f);
                 WritePng(file, pw, ph, px);
@@ -295,11 +405,51 @@ namespace VampireRounds
                 if (go != null) UnityEngine.Object.Destroy(go);
                 go = null;
             }
+
+            private string PathOf(Transform t)
+            {
+                string path = t.name;
+                for (var p = t.parent; p != null && p != go.transform; p = p.parent) path = p.name + "/" + path;
+                return path;
+            }
+
+            /// <summary>Developer runs: how the card stands when its logo is taken (faces, turns, sizes).</summary>
+            private void Diagnose()
+            {
+                var vis = go.GetComponentInChildren<CardVisuals>(true);
+                Transform front = vis != null ? vis.transform.Find("Canvas/Front") : null, back = vis != null ? vis.transform.Find("Canvas/Back") : null;
+                var sb = new StringBuilder("logos: dev " + card.cardName + " at " + go.transform.position + " root rot " + go.transform.eulerAngles);
+                sb.Append(" vis " + (vis != null ? vis.name + " rot " + vis.transform.eulerAngles + " scale " + vis.transform.lossyScale : "none"));
+                sb.Append(" front " + (front != null ? front.gameObject.activeInHierarchy + " rot " + front.eulerAngles + " fwd " + front.forward + " scale " + front.lossyScale : "none"));
+                sb.Append(" back " + (back != null ? back.gameObject.activeInHierarchy + " rot " + back.eulerAngles : "none"));
+                var fg = front != null ? front.GetComponent<CanvasGroup>() : null;
+                if (fg != null) sb.Append(" front alpha " + fg.alpha);
+                if (front != null)
+                {
+                    sb.Append(" | chain:");
+                    for (var t = front; t != null && t != go.transform.parent; t = t.parent)
+                    {
+                        sb.Append(" " + t.name + " s" + t.localScale.ToString("F4") + " r" + t.localEulerAngles.ToString("F1") + (t.gameObject.activeSelf ? "" : " off") + " [");
+                        foreach (var c in t.GetComponents<Component>()) if (c != null && !(c is Transform)) sb.Append(c.GetType().Name + " ");
+                        foreach (var c in t.GetComponents<CurveAnimation>()) sb.Append("(curve start s" + c.startScale.ToString("F4") + " r" + c.startRotation.ToString("F1") + " state " + c.currentState + ") ");
+                        foreach (var c in t.GetComponents<ScaleShake>()) sb.Append("(shake target " + c.targetScale + ") ");
+                        sb.Append("]");
+                    }
+                    var srcFront = card.transform.Find(PathOf(front));
+                    sb.Append(" | prefab front " + (srcFront != null ? "s" + srcFront.localScale + " r" + srcFront.localEulerAngles : "none"));
+                }
+                int cards = 0;
+                foreach (var ci in UnityEngine.Object.FindObjectsOfType<CardInfo>()) if (Vector3.Distance(ci.transform.position, go.transform.position) < 40f) cards++;
+                sb.Append(" cards near " + cards + " timeScale " + Time.timeScale);
+                EnginePlugin.L.LogInfo(sb.ToString());
+            }
         }
 
         // ------------------------------------------------------------------ camera and files
 
-        private static Color32[] Shoot(int pw, int ph, Vector3 center, Quaternion rot, float halfHeight)
+        private static Color32[] Shoot(int pw, int ph, Vector3 center, Quaternion rot, float halfHeight) => Shoot(pw, ph, center, rot, halfHeight, new Color(0f, 0f, 0f, 0f), true);
+
+        private static Color32[] Shoot(int pw, int ph, Vector3 center, Quaternion rot, float halfHeight, Color clear, bool straighten)
         {
             if (cam == null)
             {
@@ -319,6 +469,7 @@ namespace VampireRounds
             try
             {
                 cam.targetTexture = rt;
+                cam.backgroundColor = clear;
                 cam.transform.rotation = rot;
                 cam.transform.position = center - (rot * Vector3.forward) * 100f;
                 cam.orthographicSize = halfHeight;
@@ -330,6 +481,7 @@ namespace VampireRounds
                 tex.Apply(false);
                 RenderTexture.active = prev;
                 var px = tex.GetPixels32();
+                if (!straighten) return px;
                 for (int k = 0; k < px.Length; k++)
                 {
                     var q = px[k];

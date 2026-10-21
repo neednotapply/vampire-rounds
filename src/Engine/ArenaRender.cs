@@ -248,6 +248,16 @@ namespace VampireRounds
             return t;
         }
 
+        /// <summary>One pixel of a UI picture from its renders over black and over white, as UiFrame makes them (the card
+        /// bar's squares for VS's item area, CardIcons).</summary>
+        public static Color32 UiPixel(Color32 b, Color32 w)
+        {
+            uint px;
+            uint bb = (uint)(b.r | (b.g << 8) | (b.b << 16) | (b.a << 24)), ww = (uint)(w.r | (w.g << 8) | (w.b << 16) | (w.a << 24));
+            unsafe { UiFrame(&bb, &ww, &px, 1); }
+            return new Color32((byte)(px & 0xFF), (byte)((px >> 8) & 0xFF), (byte)((px >> 16) & 0xFF), (byte)(px >> 24));
+        }
+
         private static unsafe void UiFrame(uint* black, uint* white, uint* d, int n)
         {
             for (int i = 0; i < n; i++)

@@ -125,7 +125,7 @@
     {
       "id": "card_logos",
       "game": "both",
-      "does": "each guy's ROUNDS cards as logos in VS's item slots: the engine pictures each card's art (ROUNDS's own AddCardVisual) into cards\\<key>.rgba and writes deck<seat>.txt; the VS mod shows them in copies of VS's slot frames over VS's hidden weapon and item rows (VS still collects and uses its items); ROUNDS's letter card bar is hidden",
+      "does": "each guy's ROUNDS cards in VS's item area as ROUNDS's own card bar: the engine pictures ROUNDS's card-bar square for the seat with the letters ROUNDS gave each card (cards\\chip<seat>-<key>.rgba, made over black and white as 0.2.0 showed the bar over VS) and writes deck<seat>.txt; the VS mod shows the squares, ten to a row, over VS's hidden weapon and item rows (VS still collects and uses its items); ROUNDS's own card bar in the corner is hidden",
       "symbol": "CardIcons.Tick,CardIcons.DrawSheet,CardSlots.Tick"
     }
   ]

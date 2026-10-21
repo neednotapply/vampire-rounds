@@ -220,3 +220,14 @@
 - Test and developer autoplay runs never write VS's save (prefix on PlayerOptions.Save); autoplay steps away from the
   horde (Enemies.Away). Dev switches: VAMPIREROUNDS_DEV_ALLSTAGES, VAMPIREROUNDS_AUTOPLAY_STAGE, VAMPIREROUNDS_DEV_GOALMINUTES.
 - The creator's VS save was backed up to ~/vsr-work/save-backup before the dev runs (Steam userdata 64298853/1794680).
+- Creator after seeing the art logos (2026-10-20): "the weapon icons should look like the letters, not the art; we're
+  basically replacing the Vampire Survivors item UI with the Rounds one". The item area now shows ROUNDS's card bar:
+  CardIcons.DrawChip copies the bar's template square (Bar1's hidden first child "Card": ProceduralImage frame 767676,
+  "CarrdOrange" fill FFB32309, TMP text A6A6A6) with the letters ROUNDS gave the card, renders it over black and over
+  white and keeps ArenaRenderer.UiFrame's coverage (the fill is a 3.5 % wash: one picture was see-through, as the
+  creator saw). The live square was not copied: it fades in after a pick (copied then: empty). 10 squares to a row at
+  VS's slot size (45 units), gap 3. The art logos (Picture/SaveLogo) stay for the developer card sheet only.
+- Art logos at a run's start showed the card's back: a card made by AddCardVisual while ROUNDS's time stood still kept
+  its Canvas turned (CurveAnimation "In" from (0,180,0), startRotation is that turned pose) and its face's CanvasGroup
+  at 0. Fixed for the sheet by showing the face (CanvasGroup 1, Canvas/Back off) and running animators on; forcing the
+  CurveAnimation start pose made it worse (it is the turned pose).

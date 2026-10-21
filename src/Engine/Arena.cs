@@ -471,6 +471,25 @@ namespace VampireRounds
         {
             int slot = SlotOf(p);
             if (slot >= 0) shots[slot]++;
+            if (slot >= 0 && DevShots && shots[slot] % 10 == 1) LogShot(p, slot);
+        }
+
+        private static readonly bool DevShots = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VAMPIREROUNDS_DEV"));
+
+        /// <summary>Developer runs: where a shot leaves from, against the player and the camera (VS units).</summary>
+        private void LogShot(Player p, int slot)
+        {
+            try
+            {
+                var gun = p.data.weaponHandler.gun;
+                Vector2 body = ToVs(p.transform.position), muzzle = ToVs(gun.shootPosition != null ? gun.shootPosition.position : gun.transform.position);
+                Vector2 cam = new Vector2(link.F(ArenaLink.C_CamX), link.F(ArenaLink.C_CamY));
+                Vector2 held = new Vector2(link.F(ArenaLink.Slot(slot) + ArenaLink.S_PosX), link.F(ArenaLink.Slot(slot) + ArenaLink.S_PosY));
+                Vector2 aim = new Vector2(link.F(ArenaLink.Slot(slot) + ArenaLink.S_AimX), link.F(ArenaLink.Slot(slot) + ArenaLink.S_AimY));
+                EnginePlugin.L.LogInfo("arena: dev shot " + shots[slot] + " seat " + slot + " body " + body.ToString("F2") + " vs " + held.ToString("F2") + " muzzle " + muzzle.ToString("F2")
+                    + " aim " + aim.ToString("F2") + " gun points " + ((Vector2)gun.shootPosition.forward).ToString("F2") + " camera " + cam.ToString("F2") + " half height " + link.F(ArenaLink.C_CamOrtho).ToString("F2"));
+            }
+            catch (Exception e) { LogOnce("dev shot", e); }
         }
 
         // ------------------------------------------------------------------ VS's enemies and the screen mirrored in ROUNDS

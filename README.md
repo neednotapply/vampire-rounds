@@ -19,9 +19,10 @@ your own Steam copies of Vampire Survivors and ROUNDS).
 - **Every level-up is a ROUNDS card pick, and so is a treasure chest (at most one a minute).** ROUNDS's own pick
   screen (5 cards, its rarities, art and rules); the card goes into your ROUNDS player at once. Chests that come
   sooner give their gold alone.
-- **Your cards where VS shows your items.** Each guy's ROUNDS cards fill VS's item slots at the top left as their
-  card logos (the real card art, drawn by your ROUNDS), five to a row, in the order you took them. VS's own weapon and
-  item slots are hidden there, but VS still collects and uses its pickups.
+- **ROUNDS's card bar where VS shows your items.** Each guy's ROUNDS cards fill VS's item area at the top left as
+  ROUNDS's own card bar does: a square with the card's two letters on the guy's colour per card ("Co" for Comb), in the
+  order you took them, ten to a row. VS's own weapon and item slots are hidden there, but VS still collects and uses its
+  pickups.
 - **Every card shows.** A mod card that comes with no picture (PCE ships 40 of them) gets the two letters ROUNDS's
   card bar shows for it, big, in the card's colour; MapsExtended no longer shrinks the first card of a pick away; the
   cards stand in front of the guy's face in the pick.
@@ -80,8 +81,9 @@ Needs ROUNDS on its **old-rounds-for-mods** Steam beta branch (ROUNDS > Properti
 - The two games talk through shared memory (`Local\VampireRoundsArena1`, sheets/link.json): VS writes the camera,
   each seat's position and input, the enemies and events; ROUNDS writes health, hits, effects, card picks and its
   rendered picture (players and bullets; pick screen). Each seat's deck goes to `%LOCALAPPDATA%\VampireRounds\deck<seat>.txt`
-  and each card's logo to `cards\<key>.rgba` (the engine's CardIcons: the real card, made with ROUNDS's own
-  AddCardVisual far from the arena and pictured around its art); `Q_DeckSerial` tells VS when to read them again.
+  and each card's square of ROUNDS's card bar to `cards\chip<seat>-<key>.rgba` (the engine's CardIcons: ROUNDS's own
+  square for that seat's bar with the card's letters, pictured over black and white as 0.2.0 showed the bar over VS);
+  `Q_DeckSerial` tells VS when to read them again.
 
 Nothing from either game is in this repository or the package: each player's own ROUNDS draws the characters and
 runs the cards, and their own VS supplies the stage.

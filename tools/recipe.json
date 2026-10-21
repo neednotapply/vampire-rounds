@@ -68,6 +68,9 @@
   "runtimeData": [
     "{localappdata}/VampireRounds"
   ],
+  "multiplayer": {
+    "maxPlayers": 2
+  },
   "notes": {
     "beforeInstall": "ROUNDS must be on its old-rounds-for-mods Steam beta branch (ROUNDS > Properties > Betas), the version ROUNDS card mods use.",
     "firstLaunch": "Vampire Rounds opens its launcher: add ROUNDS card mods from Thunderstore and make each guy's face (FACES) if you like, then press PLAY. Vampire Survivors opens straight on the Vampire Rounds adventure's menu, and your ROUNDS starts hidden in the background to play Orange Guy and Blue Guy: leave ROUNDS closed when you press PLAY. The very first start takes a minute or two while the mod loader prepares itself."
