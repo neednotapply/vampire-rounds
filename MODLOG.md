@@ -172,3 +172,5 @@
 - Roundhead (C:\Users\mrnic\Documents\GitHub\Roundhead\CupRounds) has an unfinished, uncommitted in-game face picker
   (src/CardEngine/FacePicker.cs, ROUNDS's own strip streamed into Cuphead's title menu); its launcher is the same as ours,
   so this editor can go there as a PR.
+- 0.2.0 (2026-10-20): commit a502351 pushed to github.com/neednotapply/vampire-rounds main; Melty draft release a4d528fa
+  (upload 3104643e, one click: yes, launch kind exe). Not tested on Melty yet: publishing needs a passing test of 0.2.0.
