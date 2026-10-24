@@ -71,6 +71,10 @@ Needs ROUNDS on its **old-rounds-for-mods** Steam beta branch (ROUNDS > Properti
 - `Plugins/VampireRounds.InteropFix.dll` (src/InteropFix): MelonLoader 0.7.3's Il2CppInterop cannot find
   `Class::GetDefaultFieldValue` on VS's Unity 6 build and VS crashes two seconds after start with any MelonLoader
   mod; this points the hook at the right function (the byte pattern was first found by the Isaac Survivors mashup).
+  It also looks after MelonLoader's first start (and its first after a VS update), when MelonLoader builds VS's
+  assemblies for 1-3 minutes before any mod loads: the build runs beside a window that keeps answering (Windows no
+  longer calls it Not Responding), and an old assembly another plugin holds open is set aside instead of failing the
+  rebuild. The launcher shows a note meanwhile (src/Launcher/LoaderWatch.cs, FirstStartNotice.cs).
 - `UserData/VampireRounds/rounds` (src/Engine + BepInEx 5.4.23.2): loaded into ROUNDS from where Melty installs it
   with Doorstop's command-line arguments (its log: `UserData/VampireRounds/rounds/BepInEx/LogOutput.log`); the engine is
   [Roundhead](https://github.com/neednotapply/roundhead)'s ROUNDS arena (MIT, the same creator) adapted to VS: Orange Guy and Blue Guy held where VS puts them, VS's enemies
@@ -99,13 +103,16 @@ Windows, .NET SDK 8, Python 3 with Pillow, your own VS and ROUNDS on Steam.
    and the license texts (BepInEx, UnityDoorstop, HarmonyX, MonoMod, Mono.Cecil) in `~/vsr-work/dl/licenses`.
 3. The design sheets in `sheets/` are the source of truth: `python -I tools/sheets.py gen`, then
    `python -I tools/sheets.py preflight --code` (must say clean; it checks hook targets against your decompiled games).
-4. `python -I tools/package.py 0.4.0` builds all four projects (the launcher too) and writes `dist/VampireRounds-0.4.0.zip`; Melty installs
+4. `python -I tools/package.py 0.4.1` builds all four projects (the launcher too) and writes `dist/VampireRounds-0.4.1.zip`; Melty installs
    it with the recipe in `tools/recipe.json`.
 5. Developer runs: `devtools/devinstall.py on|off` (puts the staged build into your games and takes it out again),
    `devtools/run.ps1 -Auto [-Slow] [-Hero blue] [-Cards "Explosive Bullet"]` (self-playing runs, optionally starting with ROUNDS cards;
    `VAMPIREROUNDS_DEV_ALLSTAGES=1` opens every stage and `VAMPIREROUNDS_AUTOPLAY_STAGE=<stages row or slot>` plays it), `devtools/shots.sh`
    (screenshots), `devtools/cards.ps1` (every card ROUNDS has, whole and as its logo, with what it is drawn with, into
    `%LOCALAPPDATA%\VampireRounds\cards\sheet` and `cards\audit.txt`).
+   `%LOCALAPPDATA%\VampireRounds\dev-launch.txt` gives the launcher's next VS starts their switches, one line each (Melty
+   test runs too): `regenerate` makes MelonLoader rebuild VS's assemblies as on a first start, `VAMPIREROUNDS_NAME=value`
+   sets a switch (`VAMPIREROUNDS_DEV_NOPUMP=1` / `VAMPIREROUNDS_DEV_NOSETASIDE=1` bring back the old first start).
 6. Cover art: `python -I tools/cover.py` (from PowerShell; needs Edge and the internet for its fonts) repaints
    `media/art/card.png` (Melty's game card) and `media/art/adventure_bg.png` (the adventure's backdrop in VS) from
    `tools/cover.html`; the package takes the backdrop from that PNG.

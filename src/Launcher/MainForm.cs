@@ -35,6 +35,7 @@ namespace VampireRounds.Launcher
         private readonly TextBox log = new TextBox();
         private bool busy;
         private bool suppressCheck;
+        private FirstStartNotice notice;
 
         public MainForm()
         {
@@ -49,6 +50,16 @@ namespace VampireRounds.Launcher
             if (Program.AutoPlay) { Opacity = 0; ShowInTaskbar = false; }
             VampireRounds.Launcher.Log.Line += s => Ui(() => { log.AppendText(s + Environment.NewLine); });
             GameRunner.Status += s => Ui(() => status.Text = s);
+            // MelonLoader's first-start build (LoaderWatch): a note in front of the dark game window, never in Melty test runs.
+            LoaderWatch.Began += () => Ui(() =>
+            {
+                if (Program.AutoPlay) return;
+                notice?.Close();
+                notice = new FirstStartNotice();
+                notice.Show();
+            });
+            LoaderWatch.Step += s => Ui(() => notice?.SetStep(s));
+            LoaderWatch.Ended += ok => Ui(() => { notice?.Close(); notice = null; });
             Shown += (s, e) =>
             {
                 // Melty test runs (and --autoplay) never show the launcher, so the game window is what's on screen.

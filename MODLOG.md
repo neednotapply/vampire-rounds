@@ -282,3 +282,51 @@
   VAMPIREROUNDS_DEV_FRESH (HasSeenAdventuresIntroTutorial false, in memory; the run plays by itself so VS never saves):
   VS listed 0 adventures, EnsureListed added ours (1 card), boot reached the adventure's menu (19.8 s), autoplay started
   a run that fired and hit. No new release needed; the fix record (report_bug_fix) carries this evidence.
+
+## 0.4.1 (2026-10-24, players' Melty: "load errors" on 0.4.0, "freezes ~1:23 into a Play" on 0.4.0)
+- Both 0.4.0 reports are one player's very first start (the 0.3.0 report under load:errors was the Atlas problem 0.4.0
+  fixed): MelonLoader 0.7.3 builds VS's Il2Cpp assemblies (Cpp2IL + Il2CppInterop, ~90 s here) on VS's main thread inside
+  its il2cpp_runtime_invoke hook, so VS's window takes no messages: Windows marks it Not Responding (seen here with a
+  window watcher: HUNG for up to ~40 s at a time) and the player closed it after 83 s, mid-build ("Creating field
+  accessors..."). Our mod and ROUNDS had not even started; MelonLoader 0.7.3's MelonStartScreen.LoadAndRun is a stub
+  that just calls the build.
+- "Load errors": InteropFix's AccessTools.TypeByName walked every loaded type; before the build Il2CppInterop.Runtime's
+  types that need Il2Cppmscorlib cannot load, and HarmonyX logged the ReflectionTypeLoadException warning. Now the hook
+  class is asked of Il2CppInterop.Runtime itself (Plugin.HookType). A .NET 6 experiment (Il2CppInterop.Runtime from ML
+  0.7.3, Il2Cppmscorlib from ~/vsr-work/vs-interop) confirmed: TypeByName loads Il2Cppmscorlib, the direct lookup and the
+  FindTargetMethod patch do not.
+- Found while testing: TypeByName loading Il2Cppmscorlib also LOCKS it, and a rebuild (after any VS or MelonLoader update)
+  starts by deleting the old assemblies: "UnauthorizedAccessException ... Il2Cppmscorlib.dll is denied" in
+  OldFiles_Cleanup, "Failed to start MelonLoader", the game crashes (e0434352) and the half-deleted Il2CppAssemblies
+  stays broken at every start (the hash is not saved). 0.4.0's plugin did this to every player at the next VS update;
+  Isaac Survivors's VS6InteropFix (installed on this PC) still does. A loaded assembly's file can be renamed, not deleted.
+- FirstStart (InteropFix): patches the generator module as it loads (AppDomain.AssemblyLoad; MelonLoader.dll is
+  [PatchShield], Il2CppAssemblyGenerator.dll is not): Core.Run runs on a worker thread while the main thread pumps the
+  window's messages after 2 s (MsgWaitForMultipleObjectsEx + PeekMessageW/DispatchMessageW, WM_QUIT kept for VS's loop),
+  so the close button MelonLoader greys out for the build now holds; OldFiles_Cleanup / OldFiles_LAM prefixes delete each
+  old file themselves or rename one in use to "<name>.vr-old", deleted at the next start. Dev switches
+  VAMPIREROUNDS_DEV_NOPUMP / VAMPIREROUNDS_DEV_NOSETASIDE give the old behaviour.
+- Launcher: LoaderWatch reads MelonLoader/Latest.log after Play (this start's log: first line's time) and on "Assembly
+  Generation Needed!" shows FirstStartNotice (topmost, no focus, not in Melty test runs) with the step until "Loading
+  Mods..."; launcher.log keeps how long it took. DevLaunch: %LOCALAPPDATA%\VampireRounds\dev-launch.txt, one line per
+  coming VS start ("regenerate" = --melonloader.agfregenerate, VAMPIREROUNDS_*=value), so Melty test runs can be first
+  starts.
+- Melty test 544e58bc (first 0.4.1 build, run 1 = "regenerate VAMPIREROUNDS_DEV_NOPUMP=1"): reproduced the freeze (window
+  HUNG, Melty closed it at 1:43) and exposed the lock above (that run's failed rebuild left this PC's Il2CppAssemblies
+  half deleted). Release 0850bfef (pump + set aside); Melty test b8736526 passed 3/3, run 1 = "regenerate": build 85.9 s,
+  window answered throughout (longest gap 198 ms, never HUNG), Il2Cppmscorlib.dll set aside, "Assembly Generation
+  Successful!" (this PC repaired), mod loaded and played; runs 2-3 ordinary starts.
+- That run's footage showed the answering window blank white for the build (VS draws nothing before its first frame):
+  FirstStartNote paints the note into it (GDI, from the pump's WM_PAINT; redrawn each second without erasing; rendered
+  to bitmaps first to check the layout), and "Done: starting Vampire Rounds..." once the build ends (MelonLoader then
+  loads the mods for ~10 s without drawing). Release ebb3ecf8 (note, without "Done"): Melty test 6a8292b3 run 1 showed the
+  note with its clock for the whole 108 s build; one 6.5 s stretch without answers fell in "Writing assemblies" (likely a
+  blocking full GC of the generator's heap, which stops every managed thread): the pump now runs under
+  GCLatencyMode.SustainedLowLatency and logs the longest gap's full collections and slowest message.
+- Final 0.4.1 = release fb358543 (also: the launcher shows its own note only when the plugin's "VS's window shows what is
+  happening" line has not come 6 s after "Assembly Generation Needed!"; checked offline with a made-up log both ways).
+  Melty test 9c836692 run 1 ("regenerate"): build 113.4 s; longest gap 12.1 s at 108 s with 2 full collections and the
+  slowest message 1 ms, so it IS the GC (memory pressure on this PC; SustainedLowLatency did not stop them), window HUNG
+  for ~4.6 s of it; launcher log: "The game's window shows what is happening meanwhile." Earlier builds' longest gaps:
+  198 ms, 6.5 s. If it matters later: pump from native code (a CLR STA wait, or a hidden modal dialog's loop) so a GC
+  cannot stop it. After the build MelonLoader's own mod loading and Il2CppInterop setup keep the main thread ~4-8 s.

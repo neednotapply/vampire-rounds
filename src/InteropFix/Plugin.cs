@@ -1,10 +1,11 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(VampireRounds.InteropFix.Plugin), "Vampire Rounds interop fix", "0.2.0", "Vampire Rounds contributors")]
+[assembly: MelonInfo(typeof(VampireRounds.InteropFix.Plugin), "Vampire Rounds interop fix", "0.3.0", "Vampire Rounds contributors")]
 [assembly: MelonGame("poncle", "Vampire Survivors")]
 
 namespace VampireRounds.InteropFix
@@ -16,21 +17,42 @@ namespace VampireRounds.InteropFix
     /// GameAssembly.dll by the bytes of its start (the same on every copy of a build) and hands its address to
     /// Il2CppInterop's hook. If the bytes are not found exactly once (another game version), Il2CppInterop's own search
     /// stays in place. The byte pattern was first found for this game by the Isaac Survivors mashup on Melty.
+    /// It also keeps VS's window answering while MelonLoader builds the game's assemblies on a first start (FirstStart).
     /// </summary>
     public class Plugin : MelonPlugin
     {
         // mov [rsp+8],rbx; push rdi; sub rsp,40h; mov rax,[rcx+10h]; mov rbx,rcx; mov rdi,rdx; sub rbx,[rax+??]; sar rbx,5
         private const string Pattern = "48 89 5C 24 08 57 48 83 EC 40 48 8B 41 10 48 8B D9 48 8B FA 48 2B 98 ?? ?? ?? ?? 48 C1 FB 05";
+        private const string HookTypeName = "Il2CppInterop.Runtime.Injection.Hooks.Class_GetFieldDefaultValue_Hook";
         private static IntPtr found = IntPtr.Zero;
         private static bool searched;
 
         public override void OnPreInitialization()
         {
-            var hook = AccessTools.TypeByName("Il2CppInterop.Runtime.Injection.Hooks.Class_GetFieldDefaultValue_Hook");
+            FirstStart.Watch(HarmonyInstance, LoggerInstance);
+            var hook = HookType();
             var find = hook != null ? AccessTools.Method(hook, "FindTargetMethod") : null;
             if (find == null) { LoggerInstance.Msg("Il2CppInterop's GetDefaultFieldValue hook not present; nothing to do."); return; }
             HarmonyInstance.Patch(find, prefix: new HarmonyMethod(typeof(Plugin).GetMethod(nameof(UseFound), BindingFlags.Static | BindingFlags.NonPublic)));
             LoggerInstance.Msg("Il2CppInterop's GetDefaultFieldValue lookup takes the address from GameAssembly.dll's code.");
+        }
+
+        /// <summary>
+        /// Il2CppInterop's hook class, asked of Il2CppInterop.Runtime itself. (HarmonyX's TypeByName walks every type of
+        /// every loaded assembly; before MelonLoader has built the game's assemblies on a first start, some of
+        /// Il2CppInterop.Runtime's types cannot load without Il2Cppmscorlib, and it logged a ReflectionTypeLoadException
+        /// warning that players' Melty reported as errors in Vampire Rounds's code.)
+        /// </summary>
+        private static Type HookType()
+        {
+            var runtime = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "Il2CppInterop.Runtime");
+            if (runtime == null)
+            {
+                try { runtime = Assembly.Load(new AssemblyName("Il2CppInterop.Runtime")); }
+                catch { return null; }
+            }
+            try { return runtime.GetType(HookTypeName, false); }
+            catch { return null; }
         }
 
         private static bool UseFound(ref IntPtr __result)

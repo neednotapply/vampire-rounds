@@ -35,8 +35,14 @@
     {
       "id": "interop_fix",
       "game": "vs",
-      "does": "a MelonLoader plugin that points Il2CppInterop's GetDefaultFieldValue hook at the right function on VS's Unity 6 build (without it VS crashes 2 s after start with any MelonLoader mod)",
-      "symbol": "Plugin.OnPreInitialization"
+      "does": "a MelonLoader plugin that points Il2CppInterop's GetDefaultFieldValue hook at the right function on VS's Unity 6 build (without it VS crashes 2 s after start with any MelonLoader mod); it finds Il2CppInterop's hook class in Il2CppInterop.Runtime itself (walking every loaded type logged a ReflectionTypeLoadException warning on first starts)",
+      "symbol": "Plugin.OnPreInitialization,Plugin.HookType"
+    },
+    {
+      "id": "first_start",
+      "game": "vs",
+      "does": "MelonLoader's first start (and its start after a VS or MelonLoader update) builds VS's assemblies for 1-3 minutes before the mod loads: the interop fix runs MelonLoader's generator (Il2CppAssemblyGenerator Core.Run, unchanged) on a worker thread while VS's main thread keeps answering the window, so Windows never marks it Not Responding and the close button MelonLoader greys out holds, and paints a note in it (what is happening, 1-3 minutes, leave the game open, the time so far) instead of a blank window; an old assembly a plugin already loaded (Il2Cppmscorlib, by HarmonyX's TypeByName) cannot be deleted by a rebuild, so it is renamed aside and deleted at the next start instead of failing MelonLoader's start; the launcher reads MelonLoader's log and, when VS's window does not show the note itself, shows one (what is happening, 1-3 minutes, leave the game open) until the build ends, except in Melty test runs",
+      "symbol": "FirstStart.Watch,FirstStart.RunPrefix,FirstStart.CleanupPrefix,FirstStartNote.Paint,LoaderWatch.Start"
     },
     {
       "id": "engine",

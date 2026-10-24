@@ -52,11 +52,17 @@ namespace VampireRounds.Launcher
             // not hand itself back to Steam and lose its arguments. Steam must be running and the game owned.
             // Melty test runs record the game's window, which needs VS windowed; players keep their own display setting.
             string display = Program.AutoPlay ? " -screen-fullscreen 0 -screen-width 1280 -screen-height 720" : "";
-            var psi = new ProcessStartInfo(vsExe, "--vr-rounds \"" + Paths.Rounds + "\"" + display) { WorkingDirectory = Paths.Vs, UseShellExecute = false };
+            DevLaunch.Next(out string devArgs, out var devEnv);
+            var psi = new ProcessStartInfo(vsExe, "--vr-rounds \"" + Paths.Rounds + "\"" + display + devArgs) { WorkingDirectory = Paths.Vs, UseShellExecute = false };
             psi.EnvironmentVariables["SteamAppId"] = VsAppId;
             psi.EnvironmentVariables["SteamGameId"] = VsAppId;
             psi.EnvironmentVariables["VAMPIREROUNDS_ROUNDS"] = Paths.Rounds;
+            foreach (var kv in devEnv) psi.EnvironmentVariables[kv.Key] = kv.Value;
+            var startedAt = DateTime.Now;
             VsProc = Process.Start(psi);
+            // A first start has MelonLoader build VS's assemblies before Vampire Rounds loads (1-3 minutes): watched so the
+            // player is told to leave the game open.
+            LoaderWatch.Start(VsProc, startedAt);
             Thread.Sleep(6000);
             if (VsProc.HasExited) throw new Exception("Vampire Survivors closed straight away (is Steam running and signed in?)");
             Say("Vampire Rounds is running. Have fun!");
