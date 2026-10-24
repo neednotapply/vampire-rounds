@@ -330,3 +330,6 @@
   for ~4.6 s of it; launcher log: "The game's window shows what is happening meanwhile." Earlier builds' longest gaps:
   198 ms, 6.5 s. If it matters later: pump from native code (a CLR STA wait, or a hidden modal dialog's loop) so a GC
   cannot stop it. After the build MelonLoader's own mod loading and Il2CppInterop setup keep the main thread ~4-8 s.
+- Test 9c836692 passed 3/3 (footage reviewed, graduates). Publish requested 2026-10-24 (release fb358543, Melty's safety
+  review); report_bug_fix recorded load:errors and crash:hung:vampiresurvivors.exe against it. This PC's MelonLoader
+  assemblies are whole again (the first 0.4.1 test's failed rebuild was repaired by the next test's rebuild).
