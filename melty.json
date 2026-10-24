@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "mode": "installed",
+  "games": [
+    {
+      "slug": "vampire-survivors",
+      "role": "primary"
+    },
+    {
+      "slug": "custom-rounds",
+      "role": "companion"
+    }
+  ],
+  "components": [
+    {
+      "id": "main",
+      "kind": "main",
+      "label": "Vampire Rounds",
+      "fileName": "VampireRounds-*.zip",
+      "required": true
+    }
+  ],
+  "requirements": [
+    {
+      "kind": "loader",
+      "id": "melonloader"
+    }
+  ],
+  "mappings": [
+    {
+      "component": "main",
+      "from": "managed/",
+      "to": "{managed}"
+    },
+    {
+      "component": "main",
+      "from": "Mods/",
+      "to": "{game}/Mods"
+    },
+    {
+      "component": "main",
+      "from": "Plugins/",
+      "to": "{game}/Plugins"
+    },
+    {
+      "component": "main",
+      "from": "UserData/",
+      "to": "{game}/UserData"
+    },
+    {
+      "component": "main",
+      "from": "proxy-rounds/version.dll",
+      "to": "{game:custom-rounds}"
+    }
+  ],
+  "launch": {
+    "kind": "exe",
+    "path": "{managed}/VampireRoundsLauncher.exe",
+    "args": [
+      "--vs",
+      "{game}",
+      "--rounds",
+      "{game:custom-rounds}",
+      "--managed",
+      "{managed}"
+    ]
+  },
+  "runtimeData": [
+    "{localappdata}/VampireRounds"
+  ],
+  "multiplayer": {
+    "maxPlayers": 2
+  },
+  "notes": {
+    "beforeInstall": "ROUNDS must be on its old-rounds-for-mods Steam beta branch (ROUNDS > Properties > Betas), the version ROUNDS card mods use.",
+    "firstLaunch": "Vampire Rounds opens its launcher: add ROUNDS card mods from Thunderstore and make each guy's face (FACES) if you like, then press PLAY. Vampire Survivors opens straight on the Vampire Rounds adventure's menu, and your ROUNDS starts hidden in the background to play Orange Guy and Blue Guy: leave ROUNDS closed when you press PLAY. The very first start (and the first after a Vampire Survivors update) takes 1 to 3 minutes while the mod loader prepares the game; the game's window says so meanwhile, so leave the game open."
+  },
+  "test": {
+    "checks": [
+      "engine-ready",
+      "adventure-listed",
+      "run-started",
+      "rounds-drawn",
+      "gun-fired",
+      "enemy-hit",
+      "card-picked",
+      "card-logo-shown",
+      "block-used"
+    ],
+    "minutes": 5
+  }
+}
