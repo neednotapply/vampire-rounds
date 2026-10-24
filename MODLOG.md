@@ -333,3 +333,4 @@
 - Test 9c836692 passed 3/3 (footage reviewed, graduates). Publish requested 2026-10-24 (release fb358543, Melty's safety
   review); report_bug_fix recorded load:errors and crash:hung:vampiresurvivors.exe against it. This PC's MelonLoader
   assemblies are whole again (the first 0.4.1 test's failed rebuild was repaired by the next test's rebuild).
+- 0.4.1 live 2026-10-24 18:46 UTC (safety review ~30 min); player_logs shows both issues resolved.
